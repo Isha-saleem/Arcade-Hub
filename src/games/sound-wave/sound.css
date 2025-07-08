@@ -1,0 +1,44 @@
+
+body {
+    /* Specific background for Sound Wave */
+    background-image: linear-gradient(to bottom right, #4a0e4e, #7b247e);
+}
+
+.game-area {
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+canvas {
+    box-shadow: 0 0 15px rgba(255, 0, 255, 0.6); /* Magenta glow for sound theme */
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .game-area {
+        min-height: 300px;
+        padding: 1.5rem;
+    }
+    h1 {
+        font-size: 3rem;
+    }
+    p {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .game-area {
+        min-height: 250px;
+        padding: 1rem;
+    }
+    h1 {
+        font-size: 2.5rem;
+    }
+    p {
+        font-size: 0.9rem;
+    }
+}
