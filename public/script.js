@@ -1,4 +1,3 @@
-
 document.addEventListener('DOMContentLoaded', () => {
     console.log('WaveCore hub loaded!');
     // Example: Add a simple hover effect with JS if needed (though Tailwind handles most)
