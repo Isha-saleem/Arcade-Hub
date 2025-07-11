@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WaveCore: The Six Forces</title> <!-- Updated to Six Forces -->
+    <title>WaveCore: The Six Forces</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Custom shared styles -->
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css"> <!-- Path changed: was public/style.css -->
     <!-- Google Fonts - Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -25,8 +25,8 @@
             <p class="text-xl md:text-2xl text-gray-300 mb-6">
                 A collection of AI-powered mini-games inspired by the essence of waves.
             </p>
-            <!-- Game Guide Button - Moved here for better visibility and consistency -->
-            <a href="/public/guide.html" class="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full shadow-lg transform transition-transform duration-200 hover:scale-105">
+            <!-- Game Guide Button -->
+            <a href="guide.html" class="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full shadow-lg transform transition-transform duration-200 hover:scale-105"> <!-- Path changed: was /public/guide.html -->
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5s3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18s-3.332.477-4.5 1.253"></path></svg>
                 Game Guide
             </a>
@@ -34,39 +34,39 @@
 
         <main class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <!-- Game Card: Time Wave -->
-            <a href="/src/games/time-wave/index.html" class="game-card block bg-gray-700 bg-opacity-80 rounded-xl p-6 text-center transform transition-all duration-300 hover:scale-105 hover:bg-blue-600 hover:shadow-lg hover:shadow-blue-500/50 group">
+            <a href="src/games/time-wave/index.html" class="game-card block bg-gray-700 bg-opacity-80 rounded-xl p-6 text-center transform transition-all duration-300 hover:scale-105 hover:bg-blue-600 hover:shadow-lg hover:shadow-blue-500/50 group"> <!-- Path changed: was /src/games/... -->
                 <h2 class="text-3xl font-bold mb-3 text-cyan-300 group-hover:text-white">Time Wave</h2>
                 <p class="text-gray-400 group-hover:text-gray-100">Manipulate time to conquer challenges.</p>
             </a>
 
             <!-- Game Card: Sound Wave -->
-            <a href="/src/games/sound-wave/index.html" class="game-card block bg-gray-700 bg-opacity-80 rounded-xl p-6 text-center transform transition-all duration-300 hover:scale-105 hover:bg-purple-600 hover:shadow-lg hover:shadow-purple-500/50 group">
+            <a href="src/games/sound-wave/index.html" class="game-card block bg-gray-700 bg-opacity-80 rounded-xl p-6 text-center transform transition-all duration-300 hover:scale-105 hover:bg-purple-600 hover:shadow-lg hover:shadow-purple-500/50 group"> <!-- Path changed -->
                 <h2 class="text-3xl font-bold mb-3 text-pink-300 group-hover:text-white">Sound Wave</h2>
                 <p class="text-gray-400 group-hover:text-gray-100">Master rhythm and react to sonic patterns.</p>
             </a>
 
             <!-- Game Card: Heat Wave -->
-            <a href="/src/games/heat-wave/index.html" class="game-card block bg-gray-700 bg-opacity-80 rounded-xl p-6 text-center transform transition-all duration-300 hover:scale-105 hover:bg-red-600 hover:shadow-lg hover:shadow-red-500/50 group">
+            <a href="src/games/heat-wave/index.html" class="game-card block bg-gray-700 bg-opacity-80 rounded-xl p-6 text-center transform transition-all duration-300 hover:scale-105 hover:bg-red-600 hover:shadow-lg hover:shadow-red-500/50 group"> <!-- Path changed -->
                 <h2 class="text-3xl font-bold mb-3 text-orange-300 group-hover:text-white">Heat Wave</h2>
                 <p class="text-gray-400 group-hover:text-gray-100">Survive rising temperatures, find refuge.</p>
             </a>
 
             <!-- Game Card: Memory Wave -->
-            <a href="/src/games/memory-wave/index.html" class="game-card block bg-gray-700 bg-opacity-80 rounded-xl p-6 text-center transform transition-all duration-300 hover:scale-105 hover:bg-green-600 hover:shadow-lg hover:shadow-green-500/50 group">
+            <a href="src/games/memory-wave/index.html" class="game-card block bg-gray-700 bg-opacity-80 rounded-xl p-6 text-center transform transition-all duration-300 hover:scale-105 hover:bg-green-600 hover:shadow-lg hover:shadow-green-500/50 group"> <!-- Path changed -->
                 <h2 class="text-3xl font-bold mb-3 text-lime-300 group-hover:text-white">Memory Wave</h2>
                 <p class="text-gray-400 group-hover:text-gray-100">Recall sequences and navigate memory mazes.</p>
             </a>
 
             <!-- Game Card: Emotion Wave -->
-            <a href="/src/games/emotion-wave/index.html" class="game-card block bg-gray-700 bg-opacity-80 rounded-xl p-6 text-center transform transition-all duration-300 hover:scale-105 hover:bg-indigo-600 hover:shadow-lg hover:shadow-indigo-500/50 group">
+            <a href="src/games/emotion-wave/index.html" class="game-card block bg-gray-700 bg-opacity-80 rounded-xl p-6 text-center transform transition-all duration-300 hover:scale-105 hover:bg-indigo-600 hover:shadow-lg hover:shadow-indigo-500/50 group"> <!-- Path changed -->
                 <h2 class="text-3xl font-bold mb-3 text-violet-300 group-hover:text-white">Emotion Wave</h2>
                 <p class="text-gray-400 group-hover:text-gray-100">Control your mood, influence the game world.</p>
             </a>
 
             <!-- Game Card: Gravity Wave -->
-            <a href="/src/games/gravity-wave/index.html" class="game-card block bg-gray-700 bg-opacity-80 rounded-xl p-6 text-center transform transition-all duration-300 hover:scale-105 hover:bg-teal-600 hover:shadow-lg hover:shadow-teal-500/50 group"> <!-- Updated hover color for Gravity -->
-                <h2 class="text-3xl font-bold mb-3 text-teal-300 group-hover:text-white">Gravity Wave</h2> <!-- Updated text color for Gravity -->
-                <p class="text-gray-400 group-hover:text-gray-100">Manipulate gravity to overcome obstacles.</p> <!-- Corrected description -->
+            <a href="src/games/gravity-wave/index.html" class="game-card block bg-gray-700 bg-opacity-80 rounded-xl p-6 text-center transform transition-all duration-300 hover:scale-105 hover:bg-teal-600 hover:shadow-lg hover:shadow-teal-500/50 group"> <!-- Path changed -->
+                <h2 class="text-3xl font-bold mb-3 text-teal-300 group-hover:text-white">Gravity Wave</h2>
+                <p class="text-gray-400 group-hover:text-gray-100">Manipulate gravity to overcome obstacles.</p>
             </a>
         </main>
 
@@ -74,6 +74,6 @@
             <p>&copy; 2025 WaveCore. All rights reserved.</p>
         </footer>
     </div>
-    <script src="script.js"></script>
+    <script src="script.js"></script> <!-- Path changed: was public/script.js -->
 </body>
 </html>
