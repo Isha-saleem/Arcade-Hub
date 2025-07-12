@@ -1,4 +1,3 @@
-// src/games/gravity-wave/gravity.js
 
 // --- Canvas and Context ---
 const canvas = document.getElementById('gravityWaveCanvas');
@@ -11,8 +10,9 @@ let animationFrameId; // To store the requestAnimationFrame ID for stopping the 
 
 // --- Player Ship Properties ---
 const SHIP_RADIUS = 8;
-const THRUST_FORCE = 0.05; // How much acceleration per thrust
+const THRUST_ACCELERATION = 0.0005; // How much acceleration per frame from thrust (adjusted for deltaTime)
 const MAX_SPEED = 5; // Cap player speed to prevent going too fast
+const DRAG_FACTOR = 0.995; // Reduces velocity slightly each frame (simulates space drag)
 let player = {
     x: 0,
     y: 0,
@@ -23,7 +23,7 @@ let player = {
 };
 
 // --- Celestial Body (Planet) Properties ---
-const GRAVITY_CONSTANT = 0.5; // Adjust this for stronger/weaker gravity
+const BASE_GRAVITY_CONSTANT = 0.5; // Base gravity strength
 const PLANET_MIN_RADIUS = 20;
 const PLANET_MAX_RADIUS = 60;
 const PLANET_MASS_FACTOR = 1000; // Mass is radius * PLANET_MASS_FACTOR
@@ -32,6 +32,17 @@ let planets = [];
 // --- Game Loop Control ---
 let lastTime = 0;
 const MAX_DELTA_TIME = 100; // Cap delta time to prevent physics glitches on lag spikes
+
+// --- Keyboard Input ---
+const keysPressed = {}; // Stores which keys are currently held down
+
+// --- Level Progression ---
+let level = 1;
+let levelStartTime = 0;
+const BASE_LEVEL_DURATION_SECONDS = 15; // Time to survive per level
+let levelDurationSeconds = BASE_LEVEL_DURATION_SECONDS;
+let levelCompleteMessageTime = 0; // Timestamp for displaying "Level Complete!"
+const MESSAGE_DISPLAY_DURATION = 2000; // How long to show "Level Complete!" message (ms)
 
 // --- Utility Functions ---
 
@@ -47,9 +58,9 @@ function resizeCanvas() {
 
     // Re-initialize game elements if game is not running, to center them
     if (!gameRunning) {
-        initGame();
+        // Only draw initial state and message if game is not active
+        initGame(); // Set player position etc. without starting loop
         drawGame(); // Draw initial state
-        // Display "Click to Start" message
         ctx.fillStyle = '#FFFFFF';
         ctx.font = 'bold 24px Inter';
         ctx.textAlign = 'center';
@@ -118,8 +129,20 @@ function drawGame() {
     planets.forEach(drawPlanet);
     drawPlayer();
 
-    // Display messages (e.g., Game Over)
-    if (!gameRunning && player.x === -1) { // -1 as a sentinel for game over state
+    // Display Level and Time
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 20px Inter';
+    ctx.textAlign = 'left';
+    ctx.fillText(`Level: ${level}`, 20, 30);
+
+    if (gameRunning) {
+        const timeLeft = Math.max(0, levelDurationSeconds - Math.floor((performance.now() - levelStartTime) / 1000));
+        ctx.textAlign = 'right';
+        ctx.fillText(`Time: ${timeLeft}s`, canvasWidth - 20, 30);
+    }
+
+    // Display Game Over or Level Complete messages
+    if (!gameRunning) {
         ctx.fillStyle = '#FF4444'; // Red for game over
         ctx.font = 'bold 36px Inter';
         ctx.textAlign = 'center';
@@ -127,50 +150,77 @@ function drawGame() {
         ctx.fillStyle = '#FFFFFF';
         ctx.font = 'bold 24px Inter';
         ctx.fillText('Click to Restart', canvasWidth / 2, canvasHeight / 2 + 30);
+    } else if (levelCompleteMessageTime > 0 && performance.now() - levelCompleteMessageTime < MESSAGE_DISPLAY_DURATION) {
+        ctx.fillStyle = '#00FF00'; // Green for level complete
+        ctx.font = 'bold 36px Inter';
+        ctx.textAlign = 'center';
+        ctx.fillText('LEVEL COMPLETE!', canvasWidth / 2, canvasHeight / 2);
     }
 }
 
 // --- Game Logic Functions ---
 
 /**
- * Initializes or resets the game state.
+ * Initializes or resets the game state for a new level.
+ * @param {number} currentLevel - The level to initialize.
  */
-function initGame() {
+function startLevel(currentLevel) {
+    level = currentLevel;
+    levelStartTime = performance.now();
+    levelCompleteMessageTime = 0; // Reset message display
+
     player.x = canvasWidth / 2;
     player.y = canvasHeight / 2;
     player.vx = 0;
     player.vy = 0;
 
     planets = [];
-    // Generate a few random planets
-    for (let i = 0; i < 3; i++) { // 3 planets for now
+    const numPlanets = Math.min(10, 3 + level); // More planets for higher levels, max 10
+    const gravityConstant = BASE_GRAVITY_CONSTANT * (1 + (level - 1) * 0.1); // Stronger gravity
+    levelDurationSeconds = BASE_LEVEL_DURATION_SECONDS + (level - 1) * 5; // Longer survival time
+
+    for (let i = 0; i < numPlanets; i++) {
         const radius = PLANET_MIN_RADIUS + Math.random() * (PLANET_MAX_RADIUS - PLANET_MIN_RADIUS);
         const mass = radius * PLANET_MASS_FACTOR; // Mass proportional to radius
+        let newPlanetX, newPlanetY;
+        let collisionDetected;
+
+        // Ensure new planet doesn't overlap with player or existing planets
+        do {
+            collisionDetected = false;
+            newPlanetX = Math.random() * (canvasWidth - 2 * radius) + radius;
+            newPlanetY = Math.random() * (canvasHeight - 2 * radius) + radius;
+
+            // Check against player start position
+            const dxPlayer = newPlanetX - player.x;
+            const dyPlayer = newPlanetY - player.y;
+            const distPlayer = Math.sqrt(dxPlayer * dxPlayer + dyPlayer * dyPlayer);
+            if (distPlayer < player.radius + radius + 50) { // Keep a good distance from player start
+                collisionDetected = true;
+                continue;
+            }
+
+            // Check against existing planets
+            for (const existingPlanet of planets) {
+                const dx = newPlanetX - existingPlanet.x;
+                const dy = newPlanetY - existingPlanet.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < radius + existingPlanet.radius + 10) { // Add buffer
+                    collisionDetected = true;
+                    break;
+                }
+            }
+        } while (collisionDetected);
+
         planets.push({
-            x: Math.random() * (canvasWidth - 2 * radius) + radius,
-            y: Math.random() * (canvasHeight - 2 * radius) + radius,
+            x: newPlanetX,
+            y: newPlanetY,
             radius: radius,
             mass: mass,
-            color: `hsl(${Math.random() * 360}, 70%, 50%)` // Random vibrant color
+            color: `hsl(${Math.random() * 360}, 70%, 50%)`, // Random vibrant color
+            gravityConstant: gravityConstant // Each planet uses the level's gravity constant
         });
     }
-
-    // Ensure player doesn't start on a planet
-    let playerCollides;
-    do {
-        playerCollides = false;
-        for (const planet of planets) {
-            const dx = player.x - planet.x;
-            const dy = player.y - planet.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            if (distance < player.radius + planet.radius + 10) { // Add a small buffer
-                player.x = Math.random() * canvasWidth;
-                player.y = Math.random() * canvasHeight;
-                playerCollides = true;
-                break;
-            }
-        }
-    } while (playerCollides);
 }
 
 /**
@@ -191,7 +241,7 @@ function applyGravity(deltaTime) {
         }
 
         // Calculate gravitational force magnitude
-        const forceMagnitude = GRAVITY_CONSTANT * (planet.mass / distanceSq);
+        const forceMagnitude = planet.gravityConstant * (planet.mass / distanceSq);
 
         // Calculate force components
         const forceX = forceMagnitude * (dx / distance);
@@ -204,35 +254,32 @@ function applyGravity(deltaTime) {
 }
 
 /**
- * Handles player thrust input.
- * @param {MouseEvent} event - The click event.
+ * Updates the game state (physics, collisions).
+ * @param {number} deltaTime - Time elapsed since last update in milliseconds.
+ * @param {DOMHighResTimeStamp} currentTime - The current time for level duration check.
  */
-function handleCanvasClick(event) {
-    if (!gameRunning) {
-        startGame();
-        return;
+function updateGame(deltaTime, currentTime) {
+    if (!gameRunning) return;
+
+    // Apply thrust based on arrow keys
+    if (keysPressed['ArrowUp']) {
+        player.vy -= THRUST_ACCELERATION * deltaTime;
+    }
+    if (keysPressed['ArrowDown']) {
+        player.vy += THRUST_ACCELERATION * deltaTime;
+    }
+    if (keysPressed['ArrowLeft']) {
+        player.vx -= THRUST_ACCELERATION * deltaTime;
+    }
+    if (keysPressed['ArrowRight']) {
+        player.vx += THRUST_ACCELERATION * deltaTime;
     }
 
-    const rect = canvas.getBoundingClientRect();
-    const clickX = event.clientX - rect.left;
-    const clickY = event.clientY - rect.top;
+    // Apply drag
+    player.vx *= DRAG_FACTOR;
+    player.vy *= DRAG_FACTOR;
 
-    // Calculate direction vector from player to click point
-    const dx = clickX - player.x;
-    const dy = clickY - player.y;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-
-    if (distance === 0) return; // Avoid division by zero if clicked exactly on player
-
-    // Normalize the direction vector
-    const dirX = dx / distance;
-    const dirY = dy / distance;
-
-    // Apply thrust in the opposite direction of the click (pushing away from click)
-    // Or, apply thrust towards the click point (pulling towards click)
-    // Let's go with pushing away from the click point for a "repulsor" feel.
-    player.vx -= dirX * THRUST_FORCE;
-    player.vy -= dirY * THRUST_FORCE;
+    applyGravity(deltaTime);
 
     // Cap velocity
     const currentSpeed = Math.sqrt(player.vx * player.vx + player.vy * player.vy);
@@ -240,17 +287,6 @@ function handleCanvasClick(event) {
         player.vx = (player.vx / currentSpeed) * MAX_SPEED;
         player.vy = (player.vy / currentSpeed) * MAX_SPEED;
     }
-}
-
-
-/**
- * Updates the game state (physics, collisions).
- * @param {number} deltaTime - Time elapsed since last update in milliseconds.
- */
-function updateGame(deltaTime) {
-    if (!gameRunning) return;
-
-    applyGravity(deltaTime);
 
     // Update player position based on velocity
     player.x += player.vx;
@@ -274,6 +310,18 @@ function updateGame(deltaTime) {
             return; // Exit update loop if game over
         }
     }
+
+    // --- Level Completion Check ---
+    const elapsedTime = (currentTime - levelStartTime) / 1000; // in seconds
+    if (elapsedTime >= levelDurationSeconds) {
+        levelCompleteMessageTime = currentTime; // Set timestamp for message display
+        gameRunning = false; // Pause game for message
+        cancelAnimationFrame(animationFrameId); // Stop current loop
+        setTimeout(() => {
+            level++;
+            startGame(); // Start next level
+        }, MESSAGE_DISPLAY_DURATION); // Wait for message to clear
+    }
 }
 
 /**
@@ -281,24 +329,24 @@ function updateGame(deltaTime) {
  * @param {DOMHighResTimeStamp} currentTime - The current time provided by requestAnimationFrame.
  */
 function gameLoop(currentTime) {
-    if (!gameRunning) return;
+    if (!gameRunning) return; // Ensure game is still running
 
     const deltaTime = Math.min(currentTime - lastTime, MAX_DELTA_TIME); // Cap delta time
     lastTime = currentTime;
 
-    updateGame(deltaTime);
+    updateGame(deltaTime, currentTime); // Pass currentTime for level check
     drawGame();
 
     animationFrameId = requestAnimationFrame(gameLoop);
 }
 
 /**
- * Starts the game.
+ * Starts the game (or next level).
  */
 function startGame() {
     if (gameRunning) return; // Prevent starting multiple loops
 
-    initGame();
+    startLevel(level); // Initialize for the current level
     gameRunning = true;
     lastTime = performance.now(); // Initialize lastTime for accurate delta
     animationFrameId = requestAnimationFrame(gameLoop);
@@ -311,14 +359,34 @@ function startGame() {
 function endGame(message) {
     gameRunning = false;
     cancelAnimationFrame(animationFrameId); // Stop the game loop
-    player.x = -1; // Sentinel value to indicate game over state for drawing
+    // Reset level for next game
+    level = 1;
+    // player.x = -1; // No longer needed as initGame will reset position
     drawGame(); // Draw final state with game over message
     console.log(message);
+    // Re-enable click to start for next game
+    canvas.addEventListener('click', handleCanvasClick);
 }
 
 // --- Event Listeners and Initial Setup ---
 window.addEventListener('resize', resizeCanvas); // Adjust canvas on window resize
-canvas.addEventListener('click', handleCanvasClick); // Listen for clicks on the canvas
+
+// Initial click listener to start the game
+canvas.addEventListener('click', handleCanvasClick); // This will call startGame()
+
+// Keyboard input listeners
+window.addEventListener('keydown', (event) => {
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) {
+        keysPressed[event.key] = true;
+        event.preventDefault(); // Prevent default browser scrolling
+    }
+});
+
+window.addEventListener('keyup', (event) => {
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) {
+        keysPressed[event.key] = false;
+    }
+});
 
 // Initial call to set up canvas size and draw initial "Click to Start" state
 resizeCanvas();
