@@ -44,29 +44,7 @@ let levelDurationSeconds = BASE_LEVEL_DURATION_SECONDS;
 let levelCompleteMessageTime = 0; // Timestamp for displaying "Level Complete!"
 const MESSAGE_DISPLAY_DURATION = 2000; // How long to show "Level Complete!" message (ms)
 
-// --- Utility Functions ---
-
-/**
- * Resizes the canvas to fit its container and updates game dimensions.
- * Ensures responsiveness.
- */
-function resizeCanvas() {
-    canvasWidth = canvas.offsetWidth;
-    canvasHeight = canvas.offsetHeight;
-    canvas.width = canvasWidth;
-    canvas.height = canvasHeight;
-
-    // Re-initialize game elements if game is not running, to center them
-    if (!gameRunning) {
-        // Only draw initial state and message if game is not active
-        initGame(); // Set player position etc. without starting loop
-        drawGame(); // Draw initial state
-        ctx.fillStyle = '#FFFFFF';
-        ctx.font = 'bold 24px Inter';
-        ctx.textAlign = 'center';
-        ctx.fillText('Click to Start', canvasWidth / 2, canvasHeight / 2);
-    }
-}
+// --- Utility Functions (Defined first as they are dependencies) ---
 
 /**
  * Generates a random starfield background.
@@ -142,7 +120,7 @@ function drawGame() {
     }
 
     // Display Game Over or Level Complete messages
-    if (!gameRunning) {
+    if (!gameRunning && player.x === -1) { // -1 as a sentinel for game over state
         ctx.fillStyle = '#FF4444'; // Red for game over
         ctx.font = 'bold 36px Inter';
         ctx.textAlign = 'center';
@@ -158,7 +136,54 @@ function drawGame() {
     }
 }
 
-// --- Game Logic Functions ---
+
+// --- Game Logic Functions (Defined before they are called by initial setup) ---
+
+/**
+ * Ends the game and displays a message.
+ * @param {string} message - The message to display at game over.
+ */
+function endGame(message) {
+    gameRunning = false;
+    cancelAnimationFrame(animationFrameId); // Stop the game loop
+    // Reset level for next game
+    level = 1;
+    player.x = -1; // Sentinel value to indicate game over state for drawing
+    drawGame(); // Draw final state with game over message
+    console.log(message);
+    // Re-enable click to start for next game
+    canvas.addEventListener('click', handleCanvasClick);
+}
+
+/**
+ * Applies gravitational forces to the player ship from all planets.
+ * @param {number} deltaTime - Time elapsed since last update in milliseconds.
+ */
+function applyGravity(deltaTime) {
+    planets.forEach(planet => {
+        const dx = planet.x - player.x;
+        const dy = planet.y - player.y;
+        const distanceSq = dx * dx + dy * dy; // Distance squared
+        const distance = Math.sqrt(distanceSq);
+
+        // Prevent division by zero or extremely large forces when very close
+        if (distance < player.radius + planet.radius) {
+            // Collision handled elsewhere, but prevent extreme force here
+            return;
+        }
+
+        // Calculate gravitational force magnitude
+        const forceMagnitude = planet.gravityConstant * (planet.mass / distanceSq);
+
+        // Calculate force components
+        const forceX = forceMagnitude * (dx / distance);
+        const forceY = forceMagnitude * (dy / distance);
+
+        // Apply force as acceleration (F = ma, so a = F/m_player, assuming m_player = 1 for simplicity)
+        player.vx += forceX * (deltaTime / 1000); // Convert force to acceleration over time
+        player.vy += forceY * (deltaTime / 1000);
+    });
+}
 
 /**
  * Initializes or resets the game state for a new level.
@@ -221,36 +246,6 @@ function startLevel(currentLevel) {
             gravityConstant: gravityConstant // Each planet uses the level's gravity constant
         });
     }
-}
-
-/**
- * Applies gravitational forces to the player ship from all planets.
- * @param {number} deltaTime - Time elapsed since last update in milliseconds.
- */
-function applyGravity(deltaTime) {
-    planets.forEach(planet => {
-        const dx = planet.x - player.x;
-        const dy = planet.y - player.y;
-        const distanceSq = dx * dx + dy * dy; // Distance squared
-        const distance = Math.sqrt(distanceSq);
-
-        // Prevent division by zero or extremely large forces when very close
-        if (distance < player.radius + planet.radius) {
-            // Collision handled elsewhere, but prevent extreme force here
-            return;
-        }
-
-        // Calculate gravitational force magnitude
-        const forceMagnitude = planet.gravityConstant * (planet.mass / distanceSq);
-
-        // Calculate force components
-        const forceX = forceMagnitude * (dx / distance);
-        const forceY = forceMagnitude * (dy / distance);
-
-        // Apply force as acceleration (F = ma, so a = F/m_player, assuming m_player = 1 for simplicity)
-        player.vx += forceX * (deltaTime / 1000); // Convert force to acceleration over time
-        player.vy += forceY * (deltaTime / 1000);
-    });
 }
 
 /**
@@ -346,6 +341,9 @@ function gameLoop(currentTime) {
 function startGame() {
     if (gameRunning) return; // Prevent starting multiple loops
 
+    // Remove the click listener once game starts to prevent accidental restarts
+    canvas.removeEventListener('click', handleCanvasClick);
+
     startLevel(level); // Initialize for the current level
     gameRunning = true;
     lastTime = performance.now(); // Initialize lastTime for accurate delta
@@ -353,26 +351,22 @@ function startGame() {
 }
 
 /**
- * Ends the game and displays a message.
- * @param {string} message - The message to display at game over.
+ * Handles the initial click to start the game.
+ * This function is defined here because it's used by an event listener set up early.
  */
-function endGame(message) {
-    gameRunning = false;
-    cancelAnimationFrame(animationFrameId); // Stop the game loop
-    // Reset level for next game
-    level = 1;
-    // player.x = -1; // No longer needed as initGame will reset position
-    drawGame(); // Draw final state with game over message
-    console.log(message);
-    // Re-enable click to start for next game
-    canvas.addEventListener('click', handleCanvasClick);
+function handleCanvasClick() {
+    if (!gameRunning) {
+        startGame();
+    }
 }
+
 
 // --- Event Listeners and Initial Setup ---
 window.addEventListener('resize', resizeCanvas); // Adjust canvas on window resize
 
 // Initial click listener to start the game
-canvas.addEventListener('click', handleCanvasClick); // This will call startGame()
+// This needs to be defined after handleCanvasClick is defined
+canvas.addEventListener('click', handleCanvasClick);
 
 // Keyboard input listeners
 window.addEventListener('keydown', (event) => {
