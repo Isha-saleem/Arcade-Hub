@@ -17,7 +17,7 @@
         /* Basic styling for radio buttons to make them more visible */
         input[type="radio"] {
             /* These properties are used to remove the browser's default styling */
-            /* -webkit-appearance for Chrome/Safari, -moz-appearance for Firefox */
+            /* -webkit-appearance for Chrome/Safari, -moz-appearance: none; for Firefox */
             /* appearance is the standard property */
             -webkit-appearance: none;
             -moz-appearance: none;
@@ -64,16 +64,16 @@
                 <p class="text-gray-400 mb-4">Classic grid strategy.</p>
                 <div class="flex flex-col items-center space-y-2">
                     <div class="flex space-x-2 mb-2">
-                        <label class="inline-flex items-center text-gray-300 cursor-not-allowed">
-                            <input type="radio" name="ticTacToeDifficulty" value="easy" class="form-radio text-blue-500" disabled checked>
+                        <label class="inline-flex items-center text-white">
+                            <input type="radio" name="ticTacToeDifficulty" value="easy" class="form-radio text-blue-500" checked>
                             <span class="ml-2">Easy</span>
                         </label>
-                        <label class="inline-flex items-center text-gray-300 cursor-not-allowed">
-                            <input type="radio" name="ticTacToeDifficulty" value="hard" class="form-radio text-blue-500" disabled>
+                        <label class="inline-flex items-center text-white">
+                            <input type="radio" name="ticTacToeDifficulty" value="hard" class="form-radio text-blue-500">
                             <span class="ml-2">Hard</span>
                         </label>
                     </div>
-                    <button data-game-path="src/games/tic-tac-toe/index.html" class="play-button px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full shadow-lg transform transition-transform duration-200 hover:scale-105 cursor-not-allowed opacity-50">
+                    <button data-game-path="src/games/tic-tac-toe/index.html" class="play-button px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-full shadow-lg transform transition-transform duration-200 hover:scale-105">
                         Play
                     </button>
                 </div>
