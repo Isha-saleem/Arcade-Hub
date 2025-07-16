@@ -1,4 +1,4 @@
-// src/games/tic-tac-toe/tic-tac-toe.js - Tic-Tac-Toe Game with Minimax Bot
+// src/games/tic-tac-toe/tic-tac-toe.js - Tic-Tac-Toe Game with Minimax Bot (Debugging Enabled)
 
 // --- Canvas and Context ---
 const canvas = document.getElementById('ticTacToeCanvas');
@@ -95,7 +95,7 @@ function drawBoardGrid() {
 }
 
 /**
- * Draws an 'X' marker with a wave-like effect.
+ * Draws an 'X' marker. Simplified for clarity.
  * @param {number} x - Center X coordinate of the cell.
  * @param {number} y - Center Y coordinate of the cell.
  */
@@ -113,7 +113,7 @@ function drawX(x, y) {
 }
 
 /**
- * Draws an 'O' marker with a wave-like effect.
+ * Draws an 'O' marker. Simplified for clarity.
  * @param {number} x - Center X coordinate of the cell.
  * @param {number} y - Center Y coordinate of the cell.
  */
@@ -271,7 +271,9 @@ function makeBotMove() {
         }
     } else if (botDifficulty === 'hard') {
         // Hard bot: uses Minimax algorithm
-        moveIndex = findBestMoveMinimax(board, 'O').index;
+        // Pass a copy of the board to minimax to ensure it doesn't accidentally modify the live board state
+        // before a move is finalized. While minimax itself undoes moves, a fresh copy is safer.
+        moveIndex = findBestMoveMinimax([...board], 'O').index;
     }
 
     if (moveIndex !== -1) {
@@ -293,10 +295,13 @@ function minimax(currentBoard, player) {
     // Base cases for recursion:
     // Check for win/loss/draw
     if (checkWin(currentBoard, 'X')) {
+        // console.log("Base Case: X wins, score -10");
         return { score: -10 }; // X (human) wins, bad for O (bot)
     } else if (checkWin(currentBoard, 'O')) {
+        // console.log("Base Case: O wins, score 10");
         return { score: 10 }; // O (bot) wins, good for O
     } else if (emptyCells.length === 0) {
+        // console.log("Base Case: Draw, score 0");
         return { score: 0 }; // Draw
     }
 
@@ -327,13 +332,13 @@ function minimax(currentBoard, player) {
     }
 
     // Evaluate the best move based on the current player (maximizer or minimizer)
-    let bestMove;
+    let bestMoveIndex = 0; // Initialize with the first move
     if (player === 'O') { // O is the maximizer (wants highest score)
         let bestScore = -Infinity;
         for (let i = 0; i < moves.length; i++) {
             if (moves[i].score > bestScore) {
                 bestScore = moves[i].score;
-                bestMove = i;
+                bestMoveIndex = i;
             }
         }
     } else { // X is the minimizer (wants lowest score)
@@ -341,12 +346,12 @@ function minimax(currentBoard, player) {
         for (let i = 0; i < moves.length; i++) {
             if (moves[i].score < bestScore) {
                 bestScore = moves[i].score;
-                bestMove = i;
+                bestMoveIndex = i;
             }
         }
     }
-
-    return moves[bestMove]; // Return the best move (index and score)
+    // console.log(`Player ${player}, Best Move: ${moves[bestMoveIndex].index}, Score: ${moves[bestMoveIndex].score}`);
+    return moves[bestMoveIndex]; // Return the best move (index and score)
 }
 
 /**
@@ -357,7 +362,10 @@ function minimax(currentBoard, player) {
  * @returns {object} The best move found by Minimax.
  */
 function findBestMoveMinimax(currentBoard, botPlayer) {
-    return minimax(currentBoard, botPlayer);
+    // console.log("Initiating Minimax for board:", currentBoard);
+    const result = minimax(currentBoard, botPlayer);
+    // console.log("Minimax result:", result);
+    return result;
 }
 
 
