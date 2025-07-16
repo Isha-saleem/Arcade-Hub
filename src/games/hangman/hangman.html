@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hangman Game</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 30px 40px;
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 90%;
+            max-width: 550px;
+            box-sizing: border-box;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 25px;
+            font-size: 2.2em;
+        }
+        #word-display {
+            font-size: 3em;
+            letter-spacing: 8px;
+            margin: 35px 0;
+            font-weight: bold;
+            color: #e74c3c;
+            min-height: 1.2em; /* Ensure space even if word is empty */
+        }
+        .info {
+            font-size: 1.1em;
+            margin-bottom: 12px;
+            color: #555;
+        }
+        .message {
+            color: #2980b9;
+            font-weight: bold;
+            margin-top: 20px;
+            font-size: 1.1em;
+            min-height: 1.2em; /* Ensure space for messages */
+        }
+        .game-input {
+            margin-top: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        .game-input input[type="text"] {
+            padding: 12px 18px;
+            font-size: 1.3em;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            width: 90px;
+            text-align: center;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+        .game-input input[type="text"]:focus {
+            border-color: #3498db;
+        }
+        .game-input button {
+            padding: 12px 25px;
+            font-size: 1.3em;
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+        }
+        .game-input button:hover {
+            background-color: #27ae60;
+            transform: translateY(-2px);
+        }
+        .game-input button:active {
+            transform: translateY(0);
+        }
+        .new-game-btn {
+            background-color: #9b59b6 !important;
+            margin-top: 25px;
+            padding: 12px 30px !important;
+        }
+        .new-game-btn:hover {
+            background-color: #8e44ad !important;
+        }
+        .help-info {
+            font-size: 0.9em;
+            color: #7f8c8d;
+            margin-top: 15px;
+            line-height: 1.4;
+        }
+        .game-over-screen {
+            background-color: #ecf0f1;
+            padding: 25px;
+            border-radius: 10px;
+            margin-top: 30px;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+        .game-over-screen h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+        .game-over-screen p {
+            font-size: 1.3em;
+            margin-bottom: 15px;
+        }
+        .game-over-screen strong {
+            color: #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome to Hangman!</h1>
+        <p class="info">I am thinking of a word that is <span id="word-length-display">?</span> letters long.</p>
+
+        <div id="word-display"></div>
+
+        <p class="info">You have <span id="guesses-remaining">10</span> guesses left.</p>
+        <p class="info">Available letters: <span id="available-letters"></span></p>
+
+        <p class="message" id="game-message"></p>
+
+        <div id="game-controls">
+            <form class="game-input" onsubmit="handleGuess(event)">
+                <input type="text" id="guess-input" maxlength="1" pattern="[a-zA-Z!]"
+                       title="Enter a letter or '!' for help" required autofocus>
+                <button type="submit">Guess</button>
+            </form>
+            <p class="help-info">Type '!' for help (costs 3 guesses and needs at least 3 guesses remaining).</p>
+        </div>
+
+        <div id="game-over-screen" style="display: none;">
+            <div class="game-over-screen">
+                <h2 id="final-result"></h2>
+                <p id="final-word"></p>
+                <p id="final-score"></p>
+                <button onclick="newGame()" class="new-game-btn">Play Again</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Game State Variables ---
+        let secretWord = '';
+        let lettersGuessed = [];
+        let guessesRemaining = 10;
+        const withHelp = true; // Hardcoded, can be made configurable
+
+        // --- DOM Elements ---
+        const wordDisplay = document.getElementById('word-display');
+        const guessesRemainingSpan = document.getElementById('guesses-remaining');
+        const availableLettersSpan = document.getElementById('available-letters');
+        const gameMessageParagraph = document.getElementById('game-message');
+        const guessInput = document.getElementById('guess-input');
+        const gameControlsDiv = document.getElementById('game-controls');
+        const gameOverScreenDiv = document.getElementById('game-over-screen');
+        const finalResultH2 = document.getElementById('final-result');
+        const finalWordP = document.getElementById('final-word');
+        const finalScoreP = document.getElementById('final-score');
+        const wordLengthDisplay = document.getElementById('word-length-display');
+
+        // --- Word List (JavaScript Array) ---
+        // IMPORTANT: Paste your desired words from words.txt into this array.
+        // Each word should be in quotes and separated by a comma.
+        const wordlist = [
+            "awkward", "bagpipes", "banjo", "bayou", "bikini", "blitz", "bookworm", "boxcar", "buzzard",
+            "cobweb", "cockiness", "croquet", "dizzying", "duplex", "dwarves", "embezzle", "espionage",
+            "exodus", "faking", "fishhook", "fjord", "fluffiness", "fuchsia", "gabby", "galaxy", "galvanize",
+            "gazebo", "gimcrack", "gizzard", "gnarly", "gossip", "grogginess", "haiku", "haphazard",
+            "hyphen", "icebox", "injury", "ivory", "ivy", "jackpot", "jaundice", "jawbreaker", "jazziest",
+            "jelly", "jigsaw", "jinx", "jockey", "joking", "jovial", "joyful", "juicy", "jumbo", "kayak",
+            "kiosk", "klutz", "knapsack", "larynx", "lengths", "lucky", "luxury", "lymph", "marquis",
+            "matrix", "megahertz", "mnemonic", "mystify", "naphtha", "nightclub", "numbskull", "onyx",
+            "ovary", "oxidize", "oxygen", "pajama", "peekaboo", "phlegm", "pixel", "pizazz", "pneumonia",
+            "polka", "pshaw", "psyche", "puzzling", "quartz", "queue", "quip", "quiz", "rhythm", "rickshaw",
+            "schnapps", "scratch", "sphinx", "spritz", "squawk", "staff", "strength", "stretch", "stronghold",
+            "stymied", "subway", "swivel", "syndrome", "thriftless", "thumbscrew", "topaz", "transcript",
+            "transgress", "transplant", "triphthong", "twelfth", "unzip", "uptown", "vaporize", "vixen",
+            "vodka", "voodoo", "vortex", "walkway", "waltz", "wave", "wavy", "waxy", "wheezy", "whiskey",
+            "whistling", "witchcraft", "wizard", "woozy", "wristwatch", "xylophone", "yachtsman", "yippee",
+            "yummy", "zigzag", "zipper", "zodiac", "zombie"
+        ];
+        // END OF WORD LIST
+
+
+        // --- Game Logic Functions (JavaScript versions) ---
+
+        function chooseWord(list) {
+            if (list.length === 0) {
+                console.error("Word list is empty! Cannot choose a word.");
+                return "default"; // Fallback in case list is somehow empty
+            }
+            return list[Math.floor(Math.random() * list.length)];
+        }
+
+        function hasPlayerWon(secret, guessed) {
+            // Using Set to get unique letters from secret word, then checking if all are guessed
+            return [...new Set(secret)].every(letter => guessed.includes(letter));
+        }
+
+        function getWordProgress(secret, guessed) {
+            return secret.split('').map(letter => guessed.includes(letter) ? letter : '*').join('');
+        }
+
+        function getAvailableLetters(guessed) {
+            return [...'abcdefghijklmnopqrstuvwxyz'].filter(letter => !guessed.includes(letter)).join('');
+        }
+
+        function revealLetter(secret, guessed) {
+            const hidden = [...new Set(secret)].filter(letter => !guessed.includes(letter));
+            return hidden.length > 0 ? hidden[Math.floor(Math.random() * hidden.length)] : null;
+        }
+
+        function updateUI() {
+            wordDisplay.textContent = getWordProgress(secretWord, lettersGuessed);
+            guessesRemainingSpan.textContent = guessesRemaining;
+            availableLettersSpan.textContent = getAvailableLetters(lettersGuessed);
+            wordLengthDisplay.textContent = secretWord.length;
+
+            if (hasPlayerWon(secretWord, lettersGuessed) || guessesRemaining <= 0) {
+                endGame();
+            }
+        }
+
+        function displayMessage(msg) {
+            gameMessageParagraph.textContent = msg;
+            // Clear message after a short delay
+            setTimeout(() => {
+                gameMessageParagraph.textContent = '';
+            }, 3000); // Message disappears after 3 seconds
+        }
+
+        function handleGuess(event) {
+            event.preventDefault(); // Prevent page reload
+            
+            // Check if game is already over
+            if (guessesRemaining <= 0 || hasPlayerWon(secretWord, lettersGuessed)) {
+                displayMessage("Game is over. Click 'Play Again' to start a new game.");
+                return;
+            }
+
+            let guess = guessInput.value.toLowerCase();
+            guessInput.value = ''; // Clear input field immediately after reading
+
+            // Input validation
+            if (!/^[a-z!]$/.test(guess)) { // Check if it's a single alphabet letter or '!'
+                displayMessage("Oops! That is not a valid letter. Please input a letter from the alphabet or '!' for help.");
+                return;
+            }
+
+            // Help option handling
+            if (guess === "!") {
+                if (!withHelp) {
+                    displayMessage("Help is not enabled for this game.");
+                } else if (guessesRemaining < 3) {
+                    displayMessage("Sorry, not enough guesses left to use help.");
+                } else {
+                    const revealed = revealLetter(secretWord, lettersGuessed);
+                    if (revealed) {
+                        lettersGuessed.push(revealed);
+                        guessesRemaining -= 3;
+                        displayMessage(`Letter revealed: ${revealed.toUpperCase()}`);
+                    } else {
+                        displayMessage("No unguessed letters to reveal."); // All letters are already guessed
+                    }
+                }
+                updateUI(); // Update UI after help
+                return;
+            }
+
+            // Check if letter was already guessed
+            if (lettersGuessed.includes(guess)) {
+                displayMessage("Oops! You've already guessed that letter.");
+                return;
+            }
+
+            // Add the new guess
+            lettersGuessed.push(guess);
+
+            // Process guess
+            if (secretWord.includes(guess)) {
+                displayMessage("Good guess!");
+            } else {
+                // Wrong vowel costs 2 guesses, consonant costs 1
+                if ("aeiou".includes(guess)) {
+                    guessesRemaining -= 2;
+                } else {
+                    guessesRemaining -= 1;
+                }
+                displayMessage("Oops! That letter is not in my word.");
+            }
+            updateUI(); // Update UI after processing guess
+        }
+
+        function endGame() {
+            gameControlsDiv.style.display = 'none'; // Hide input and help info
+            gameOverScreenDiv.style.display = 'block'; // Show game over screen
+
+            if (hasPlayerWon(secretWord, lettersGuessed)) {
+                finalResultH2.textContent = "Congratulations, you won!";
+                const uniqueLetters = new Set(secretWord).size;
+                const score = (guessesRemaining + 4 * uniqueLetters) + (3 * secretWord.length);
+                finalScoreP.textContent = `Your total score for this game is: ${score}`;
+                finalWordP.textContent = `The word was: ${secretWord.toUpperCase()}`;
+                finalWordP.style.display = 'block'; // Ensure word is visible
+            } else {
+                finalResultH2.textContent = "Game Over!";
+                finalWordP.textContent = `The word was: ${secretWord.toUpperCase()}`;
+                finalScoreP.textContent = ''; // Clear score if lost
+                finalWordP.style.display = 'block'; // Ensure word is visible
+            }
+        }
+
+        function newGame() {
+            if (wordlist.length === 0) {
+                console.error("The word list is empty! Please add words to the 'wordlist' array in the script.");
+                displayMessage("Error: Word list is empty. Game cannot start.");
+                return;
+            }
+            secretWord = chooseWord(wordlist);
+            lettersGuessed = [];
+            guessesRemaining = 10;
+            displayMessage("New game started!");
+            
+            // Reset UI visibility
+            gameControlsDiv.style.display = 'block';
+            gameOverScreenDiv.style.display = 'none';
+            guessInput.focus(); // Set focus back to input for convenience
+            updateUI(); // Initial UI update for the new game
+        }
+
+        // --- Initialize Game on Load ---
+        document.addEventListener('DOMContentLoaded', newGame);
+
+    </script>
+</body>
+</html>
