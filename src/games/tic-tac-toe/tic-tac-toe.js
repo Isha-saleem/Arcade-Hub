@@ -1,4 +1,4 @@
-// src/games/tic-tac-toe/tic-tac-toe.js - Tic-Tac-Toe Game
+// src/games/tic-tac-toe/tic-tac-toe.js - Tic-Tac-Toe Game with Minimax Bot
 
 // --- Canvas and Context ---
 const canvas = document.getElementById('ticTacToeCanvas');
@@ -104,21 +104,6 @@ function drawX(x, y) {
     ctx.strokeStyle = '#EF4444'; // Red for X
     ctx.lineWidth = 8; // Thicker lines
 
-    // Draw lines with slight curves for a "wave" effect
-    ctx.beginPath();
-    ctx.moveTo(x - offset, y - offset);
-    ctx.quadraticCurveTo(x, y - offset * 0.5, x + offset, y - offset); // Top curve
-    ctx.moveTo(x - offset, y + offset);
-    ctx.quadraticCurveTo(x, y + offset * 0.5, x + offset, y + offset); // Bottom curve
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(x - offset, y + offset);
-    ctx.quadraticCurveTo(x, y + offset * 0.5, x + offset, y + offset); // Bottom curve
-    ctx.moveTo(x - offset, y - offset);
-    ctx.quadraticCurveTo(x, y - offset * 0.5, x + offset, y - offset); // Top curve
-    ctx.stroke();
-
     ctx.beginPath();
     ctx.moveTo(x - offset, y - offset);
     ctx.lineTo(x + offset, y + offset);
@@ -137,7 +122,6 @@ function drawO(x, y) {
     ctx.strokeStyle = '#3B82F6'; // Blue for O
     ctx.lineWidth = 8; // Thicker lines
 
-    // Draw arc with a slight distortion for "wave" effect
     ctx.beginPath();
     ctx.arc(x, y, radius, 0, Math.PI * 2);
     ctx.stroke();
@@ -176,56 +160,25 @@ function updateMessage(message, color = 'text-gray-300') {
 }
 
 /**
- * Handles a player's move (or bot's move).
- * @param {number} index - The index of the cell clicked/chosen.
+ * Checks if a given player has won on the current board state.
+ * @param {Array<string>} currentBoard - The board array to check.
+ * @param {string} player - The player ('X' or 'O') to check for a win.
+ * @returns {boolean} - True if the player has won, false otherwise.
  */
-function handlePlayerMove(index) {
-    if (!gameActive || board[index] !== '') {
-        return; // Ignore if game not active or cell already taken
-    }
-
-    board[index] = currentPlayer;
-    drawGame(); // Update canvas
-
-    if (checkWin()) {
-        updateMessage(`${currentPlayer} Wins!`, currentPlayer === 'X' ? 'text-red-400' : 'text-blue-400');
-        endGame();
-        return;
-    }
-
-    if (checkDraw()) {
-        updateMessage('It\'s a Draw!', 'text-yellow-400');
-        endGame();
-        return;
-    }
-
-    // Switch player
-    currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
-    updateMessage(`Player ${currentPlayer}'s turn`);
-
-    // If it's bot mode and it's bot's turn, make bot move
-    if (gameMode === 'bot' && currentPlayer === 'O' && gameActive) {
-        setTimeout(makeBotMove, 500); // Small delay for bot move
-    }
-}
-
-/**
- * Checks if the current player has won.
- * @returns {boolean} - True if current player has won, false otherwise.
- */
-function checkWin() {
+function checkWin(currentBoard, player) {
     return winConditions.some(combination => {
         const [a, b, c] = combination;
-        return board[a] === currentPlayer && board[b] === currentPlayer && board[c] === currentPlayer;
+        return currentBoard[a] === player && currentBoard[b] === player && currentBoard[c] === player;
     });
 }
 
 /**
- * Checks if the game is a draw.
+ * Checks if the game is a draw on the current board state.
+ * @param {Array<string>} currentBoard - The board array to check.
  * @returns {boolean} - True if the board is full and no winner, false otherwise.
  */
-function checkDraw() {
-    return board.every(cell => cell !== '');
+function checkDraw(currentBoard) {
+    return currentBoard.every(cell => cell !== '');
 }
 
 /**
@@ -249,6 +202,40 @@ function resetGame() {
     updateMessage('Select game mode to start.');
     drawGame(); // Clear board
     canvas.addEventListener('click', handleCanvasClick); // Re-enable clicks
+}
+
+/**
+ * Handles a player's move (or bot's move).
+ * @param {number} index - The index of the cell clicked/chosen.
+ */
+function handlePlayerMove(index) {
+    if (!gameActive || board[index] !== '') {
+        return; // Ignore if game not active or cell already taken
+    }
+
+    board[index] = currentPlayer;
+    drawGame(); // Update canvas
+
+    if (checkWin(board, currentPlayer)) {
+        updateMessage(`${currentPlayer} Wins!`, currentPlayer === 'X' ? 'text-red-400' : 'text-blue-400');
+        endGame();
+        return;
+    }
+
+    if (checkDraw(board)) {
+        updateMessage('It\'s a Draw!', 'text-yellow-400');
+        endGame();
+        return;
+    }
+
+    // Switch player
+    currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+    updateMessage(`Player ${currentPlayer}'s turn`);
+
+    // If it's bot mode and it's bot's turn, make bot move
+    if (gameMode === 'bot' && currentPlayer === 'O' && gameActive) {
+        setTimeout(makeBotMove, 500); // Small delay for bot move
+    }
 }
 
 /**
@@ -283,8 +270,8 @@ function makeBotMove() {
             moveIndex = emptyCells[Math.floor(Math.random() * emptyCells.length)];
         }
     } else if (botDifficulty === 'hard') {
-        // Hard bot: simple strategic moves (block win, try to win, else random)
-        moveIndex = findBestMove();
+        // Hard bot: uses Minimax algorithm
+        moveIndex = findBestMoveMinimax(board, 'O').index;
     }
 
     if (moveIndex !== -1) {
@@ -292,53 +279,85 @@ function makeBotMove() {
     }
 }
 
+// --- Minimax Algorithm ---
+
 /**
- * Finds the best move for the bot using a basic strategic approach.
- * This is a simplified version, not a full minimax.
+ * The Minimax function to determine the best move for the AI.
+ * @param {Array<string>} currentBoard - The current state of the board.
+ * @param {string} player - The current player for whom to find the best move ('X' or 'O').
+ * @returns {object} An object containing the best score and the index of the best move.
  */
-function findBestMove() {
-    // 1. Check if bot can win
-    for (let i = 0; i < board.length; i++) {
-        if (board[i] === '') {
-            board[i] = 'O'; // Try bot's move
-            if (checkWin()) {
-                board[i] = ''; // Undo for checkWin
-                return i; // Bot wins
+function minimax(currentBoard, player) {
+    const emptyCells = currentBoard.map((cell, index) => cell === '' ? index : -1).filter(index => index !== -1);
+
+    // Base cases for recursion:
+    // Check for win/loss/draw
+    if (checkWin(currentBoard, 'X')) {
+        return { score: -10 }; // X (human) wins, bad for O (bot)
+    } else if (checkWin(currentBoard, 'O')) {
+        return { score: 10 }; // O (bot) wins, good for O
+    } else if (emptyCells.length === 0) {
+        return { score: 0 }; // Draw
+    }
+
+    let moves = []; // To store possible moves and their scores
+
+    // Loop through all empty cells
+    for (let i = 0; i < emptyCells.length; i++) {
+        const move = {};
+        move.index = emptyCells[i]; // Store the original index of the cell
+
+        // Make the move on the board
+        currentBoard[emptyCells[i]] = player;
+
+        // Recursively call minimax for the next player
+        if (player === 'O') { // If current player is O (maximizer), simulate X's turn
+            const result = minimax(currentBoard, 'X');
+            move.score = result.score;
+        } else { // If current player is X (minimizer), simulate O's turn
+            const result = minimax(currentBoard, 'O');
+            move.score = result.score;
+        }
+
+        // Undo the move
+        currentBoard[emptyCells[i]] = '';
+
+        // Push the move and its score to the moves array
+        moves.push(move);
+    }
+
+    // Evaluate the best move based on the current player (maximizer or minimizer)
+    let bestMove;
+    if (player === 'O') { // O is the maximizer (wants highest score)
+        let bestScore = -Infinity;
+        for (let i = 0; i < moves.length; i++) {
+            if (moves[i].score > bestScore) {
+                bestScore = moves[i].score;
+                bestMove = i;
             }
-            board[i] = ''; // Undo
+        }
+    } else { // X is the minimizer (wants lowest score)
+        let bestScore = Infinity;
+        for (let i = 0; i < moves.length; i++) {
+            if (moves[i].score < bestScore) {
+                bestScore = moves[i].score;
+                bestMove = i;
+            }
         }
     }
 
-    // 2. Check if player can win (and block them)
-    for (let i = 0; i < board.length; i++) {
-        if (board[i] === '') {
-            board[i] = 'X'; // Try player's move
-            if (checkWin()) {
-                board[i] = ''; // Undo for checkWin
-                return i; // Block player
-            }
-            board[i] = ''; // Undo
-        }
-    }
+    return moves[bestMove]; // Return the best move (index and score)
+}
 
-    // 3. Take center if available
-    if (board[4] === '') return 4;
-
-    // 4. Take a corner if available
-    const corners = [0, 2, 6, 8];
-    for (const corner of corners) {
-        if (board[corner] === '') return corner;
-    }
-
-    // 5. Take any available side
-    const sides = [1, 3, 5, 7];
-    for (const side of sides) {
-        if (board[side] === '') return side;
-    }
-
-    // Fallback to random if no strategic move found (shouldn't happen in 3x3)
-    const emptyCells = board.map((cell, index) => cell === '' ? index : -1).filter(index => index !== -1);
-    return emptyCells.length > 0 ? emptyCells[Math.floor(Math.random() * emptyCells.length)] : -1;
+/**
+ * Finds the best move for the bot using the Minimax algorithm.
+ * This function initiates the Minimax process.
+ * @param {Array<string>} currentBoard - The current state of the board.
+ * @param {string} botPlayer - The player representing the bot ('O' in this case).
+ * @returns {object} The best move found by Minimax.
+ */
+function findBestMoveMinimax(currentBoard, botPlayer) {
+    return minimax(currentBoard, botPlayer);
 }
 
 
@@ -360,6 +379,10 @@ function startPvBot() {
     modeSelection.classList.add('hidden'); // Hide mode selection
     startGame();
     updateMessage(`Player X's turn (${DIFFICULTY_SETTINGS[botDifficulty].message})`);
+
+    // If bot is 'X' and it's bot's turn, make initial move
+    // In our setup, player is X, bot is O, so bot moves only after player's first move
+    // If we wanted bot to go first, we'd add logic here to check if currentPlayer is 'O' and makeBotMove()
 }
 
 /**
