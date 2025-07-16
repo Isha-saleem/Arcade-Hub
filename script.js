@@ -1,3 +1,4 @@
+// script.js - Main Hub Logic for WaveCore
 
 document.addEventListener('DOMContentLoaded', () => {
     // Get all play buttons
