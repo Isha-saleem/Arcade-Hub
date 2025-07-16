@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WaveCore: The Six Forces</title>
+    <title>WaveCore: The Ultimate Collection</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Custom shared styles -->
@@ -45,10 +45,10 @@
     <div class="container mx-auto max-w-4xl bg-gray-800 bg-opacity-70 rounded-2xl shadow-2xl p-8 md:p-12 border border-blue-700">
         <header class="text-center mb-10">
             <h1 class="text-5xl md:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600 mb-4 animate-pulse">
-                WaveCore: The Six Forces
+                WaveCore: The Ultimate Collection
             </h1>
             <p class="text-xl md:text-2xl text-gray-300 mb-6">
-                A collection of AI-powered mini-games inspired by the essence of waves.
+                A collection of engaging games, infused with the essence of waves.
             </p>
             <!-- Game Guide Button -->
             <a href="guide.html" class="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full shadow-lg transform transition-transform duration-200 hover:scale-105">
@@ -58,155 +58,215 @@
         </header>
 
         <main class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <!-- Game Card: Time Wave -->
+            <!-- Game Card: Tic-Tac-Toe -->
             <div class="game-card block bg-gray-700 bg-opacity-80 rounded-xl p-6 text-center shadow-lg group">
-                <h2 class="text-3xl font-bold mb-3 text-cyan-300">Time Wave</h2>
-                <p class="text-gray-400 mb-4">Manipulate time to conquer challenges.</p>
+                <h2 class="text-3xl font-bold mb-3 text-red-300">Tic-Tac-Toe</h2>
+                <p class="text-gray-400 mb-4">Classic grid strategy.</p>
                 <div class="flex flex-col items-center space-y-2">
                     <div class="flex space-x-2 mb-2">
-                        <!-- Difficulty options for Time Wave (will be enabled later) -->
                         <label class="inline-flex items-center text-gray-300 cursor-not-allowed">
-                            <input type="radio" name="timeWaveDifficulty" value="easy" class="form-radio text-blue-500" disabled>
+                            <input type="radio" name="ticTacToeDifficulty" value="easy" class="form-radio text-blue-500" disabled checked>
                             <span class="ml-2">Easy</span>
                         </label>
                         <label class="inline-flex items-center text-gray-300 cursor-not-allowed">
-                            <input type="radio" name="timeWaveDifficulty" value="hard" class="form-radio text-blue-500" disabled>
+                            <input type="radio" name="ticTacToeDifficulty" value="hard" class="form-radio text-blue-500" disabled>
                             <span class="ml-2">Hard</span>
                         </label>
-                        <label class="inline-flex items-center text-gray-300 cursor-not-allowed">
-                            <input type="radio" name="timeWaveDifficulty" value="difficult" class="form-radio text-blue-500" disabled>
-                            <span class="ml-2">Difficult</span>
-                        </label>
                     </div>
-                    <button data-game-path="src/games/time-wave/index.html" class="play-button px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full shadow-lg transform transition-transform duration-200 hover:scale-105 cursor-not-allowed opacity-50">
+                    <button data-game-path="src/games/tic-tac-toe/index.html" class="play-button px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full shadow-lg transform transition-transform duration-200 hover:scale-105 cursor-not-allowed opacity-50">
                         Play
                     </button>
                 </div>
             </div>
 
-            <!-- Game Card: Sound Wave -->
+            <!-- Game Card: Hangman -->
             <div class="game-card block bg-gray-700 bg-opacity-80 rounded-xl p-6 text-center shadow-lg group">
-                <h2 class="text-3xl font-bold mb-3 text-pink-300">Sound Wave</h2>
-                <p class="text-gray-400 mb-4">Master rhythm and react to sonic patterns.</p>
+                <h2 class="text-3xl font-bold mb-3 text-yellow-300">Hangman</h2>
+                <p class="text-gray-400 mb-4">Guess the word, save the man.</p>
                 <div class="flex flex-col items-center space-y-2">
                     <div class="flex space-x-2 mb-2">
-                        <!-- Difficulty options for Sound Wave (will be enabled later) -->
                         <label class="inline-flex items-center text-gray-300 cursor-not-allowed">
-                            <input type="radio" name="soundWaveDifficulty" value="easy" class="form-radio text-blue-500" disabled>
+                            <input type="radio" name="hangmanDifficulty" value="easy" class="form-radio text-blue-500" disabled checked>
                             <span class="ml-2">Easy</span>
                         </label>
                         <label class="inline-flex items-center text-gray-300 cursor-not-allowed">
-                            <input type="radio" name="soundWaveDifficulty" value="hard" class="form-radio text-blue-500" disabled>
+                            <input type="radio" name="hangmanDifficulty" value="hard" class="form-radio text-blue-500" disabled>
                             <span class="ml-2">Hard</span>
                         </label>
-                        <label class="inline-flex items-center text-gray-300 cursor-not-allowed">
-                            <input type="radio" name="soundWaveDifficulty" value="difficult" class="form-radio text-blue-500" disabled>
-                            <span class="ml-2">Difficult</span>
-                        </label>
                     </div>
-                    <button data-game-path="src/games/sound-wave/index.html" class="play-button px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full shadow-lg transform transition-transform duration-200 hover:scale-105 cursor-not-allowed opacity-50">
+                    <button data-game-path="src/games/hangman/index.html" class="play-button px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full shadow-lg transform transition-transform duration-200 hover:scale-105 cursor-not-allowed opacity-50">
                         Play
                     </button>
                 </div>
             </div>
 
-            <!-- Game Card: Heat Wave -->
+            <!-- Game Card: 4 in a Row -->
             <div class="game-card block bg-gray-700 bg-opacity-80 rounded-xl p-6 text-center shadow-lg group">
-                <h2 class="text-3xl font-bold mb-3 text-orange-300">Heat Wave</h2>
-                <p class="text-gray-400 mb-4">Survive rising temperatures, find refuge.</p>
+                <h2 class="text-3xl font-bold mb-3 text-green-300">4 in a Row</h2>
+                <p class="text-gray-400 mb-4">Connect four, win the game.</p>
                 <div class="flex flex-col items-center space-y-2">
                     <div class="flex space-x-2 mb-2">
-                        <!-- Difficulty options for Heat Wave (will be enabled later) -->
                         <label class="inline-flex items-center text-gray-300 cursor-not-allowed">
-                            <input type="radio" name="heatWaveDifficulty" value="easy" class="form-radio text-blue-500" disabled>
+                            <input type="radio" name="fourInARowDifficulty" value="easy" class="form-radio text-blue-500" disabled checked>
                             <span class="ml-2">Easy</span>
                         </label>
                         <label class="inline-flex items-center text-gray-300 cursor-not-allowed">
-                            <input type="radio" name="heatWaveDifficulty" value="hard" class="form-radio text-blue-500" disabled>
+                            <input type="radio" name="fourInARowDifficulty" value="hard" class="form-radio text-blue-500" disabled>
                             <span class="ml-2">Hard</span>
                         </label>
-                        <label class="inline-flex items-center text-gray-300 cursor-not-allowed">
-                            <input type="radio" name="heatWaveDifficulty" value="difficult" class="form-radio text-blue-500" disabled>
-                            <span class="ml-2">Difficult</span>
-                        </label>
                     </div>
-                    <button data-game-path="src/games/heat-wave/index.html" class="play-button px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full shadow-lg transform transition-transform duration-200 hover:scale-105 cursor-not-allowed opacity-50">
+                    <button data-game-path="src/games/4-in-a-row/index.html" class="play-button px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full shadow-lg transform transition-transform duration-200 hover:scale-105 cursor-not-allowed opacity-50">
                         Play
                     </button>
                 </div>
             </div>
 
-            <!-- Game Card: Memory Wave (ENABLED) -->
+            <!-- Game Card: Color Connect -->
             <div class="game-card block bg-gray-700 bg-opacity-80 rounded-xl p-6 text-center shadow-lg group">
-                <h2 class="text-3xl font-bold mb-3 text-lime-300">Memory Wave</h2>
-                <p class="text-gray-400 mb-4">Recall sequences and navigate memory mazes.</p>
+                <h2 class="text-3xl font-bold mb-3 text-purple-300">Color Connect</h2>
+                <p class="text-gray-400 mb-4">Link colors, fill the board.</p>
                 <div class="flex flex-col items-center space-y-2">
                     <div class="flex space-x-2 mb-2">
-                        <label class="inline-flex items-center text-white">
-                            <input type="radio" name="memoryWaveDifficulty" value="easy" class="form-radio text-blue-500" checked>
+                        <label class="inline-flex items-center text-gray-300 cursor-not-allowed">
+                            <input type="radio" name="colorConnectDifficulty" value="easy" class="form-radio text-blue-500" disabled checked>
                             <span class="ml-2">Easy</span>
                         </label>
-                        <label class="inline-flex items-center text-white">
-                            <input type="radio" name="memoryWaveDifficulty" value="hard" class="form-radio text-blue-500">
+                        <label class="inline-flex items-center text-gray-300 cursor-not-allowed">
+                            <input type="radio" name="colorConnectDifficulty" value="hard" class="form-radio text-blue-500" disabled>
                             <span class="ml-2">Hard</span>
                         </label>
-                        <label class="inline-flex items-center text-white">
-                            <input type="radio" name="memoryWaveDifficulty" value="difficult" class="form-radio text-blue-500">
-                            <span class="ml-2">Difficult</span>
-                        </label>
                     </div>
-                    <button data-game-path="src/games/memory-wave/index.html" class="play-button px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-full shadow-lg transform transition-transform duration-200 hover:scale-105">
+                    <button data-game-path="src/games/color-connect/index.html" class="play-button px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full shadow-lg transform transition-transform duration-200 hover:scale-105 cursor-not-allowed opacity-50">
                         Play
                     </button>
                 </div>
             </div>
 
-            <!-- Game Card: Emotion Wave -->
+            <!-- Game Card: Cross Sum -->
             <div class="game-card block bg-gray-700 bg-opacity-80 rounded-xl p-6 text-center shadow-lg group">
-                <h2 class="text-3xl font-bold mb-3 text-violet-300">Emotion Wave</h2>
-                <p class="text-gray-400 mb-4">Control your mood, influence the game world.</p>
+                <h2 class="text-3xl font-bold mb-3 text-indigo-300">Cross Sum</h2>
+                <p class="text-gray-400 mb-4">Solve the number puzzles.</p>
                 <div class="flex flex-col items-center space-y-2">
                     <div class="flex space-x-2 mb-2">
-                        <!-- Difficulty options for Emotion Wave (will be enabled later) -->
                         <label class="inline-flex items-center text-gray-300 cursor-not-allowed">
-                            <input type="radio" name="emotionWaveDifficulty" value="easy" class="form-radio text-blue-500" disabled>
+                            <input type="radio" name="crossSumDifficulty" value="easy" class="form-radio text-blue-500" disabled checked>
                             <span class="ml-2">Easy</span>
                         </label>
                         <label class="inline-flex items-center text-gray-300 cursor-not-allowed">
-                            <input type="radio" name="emotionWaveDifficulty" value="hard" class="form-radio text-blue-500" disabled>
+                            <input type="radio" name="crossSumDifficulty" value="hard" class="form-radio text-blue-500" disabled>
                             <span class="ml-2">Hard</span>
                         </label>
-                        <label class="inline-flex items-center text-gray-300 cursor-not-allowed">
-                            <input type="radio" name="emotionWaveDifficulty" value="difficult" class="form-radio text-blue-500" disabled>
-                            <span class="ml-2">Difficult</span>
-                        </label>
                     </div>
-                    <button data-game-path="src/games/emotion-wave/index.html" class="play-button px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full shadow-lg transform transition-transform duration-200 hover:scale-105 cursor-not-allowed opacity-50">
+                    <button data-game-path="src/games/cross-sum/index.html" class="play-button px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full shadow-lg transform transition-transform duration-200 hover:scale-105 cursor-not-allowed opacity-50">
                         Play
                     </button>
                 </div>
             </div>
 
-            <!-- Game Card: Gravity Wave (ENABLED) -->
+            <!-- Game Card: Word Finder -->
             <div class="game-card block bg-gray-700 bg-opacity-80 rounded-xl p-6 text-center shadow-lg group">
-                <h2 class="text-3xl font-bold mb-3 text-teal-300">Gravity Wave</h2>
-                <p class="text-gray-400 mb-4">Manipulate gravity to overcome obstacles.</p>
+                <h2 class="text-3xl font-bold mb-3 text-cyan-300">Word Finder</h2>
+                <p class="text-gray-400 mb-4">Find words in the grid.</p>
+                <div class="flex flex-col items-center space-y-2">
+                    <div class="flex space-x-2 mb-2">
+                        <label class="inline-flex items-center text-gray-300 cursor-not-allowed">
+                            <input type="radio" name="wordFinderDifficulty" value="easy" class="form-radio text-blue-500" disabled checked>
+                            <span class="ml-2">Easy</span>
+                        </label>
+                        <label class="inline-flex items-center text-gray-300 cursor-not-allowed">
+                            <input type="radio" name="wordFinderDifficulty" value="hard" class="form-radio text-blue-500" disabled>
+                            <span class="ml-2">Hard</span>
+                        </label>
+                    </div>
+                    <button data-game-path="src/games/word-finder/index.html" class="play-button px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full shadow-lg transform transition-transform duration-200 hover:scale-105 cursor-not-allowed opacity-50">
+                        Play
+                    </button>
+                </div>
+            </div>
+
+            <!-- Game Card: Sound Memory -->
+            <div class="game-card block bg-gray-700 bg-opacity-80 rounded-xl p-6 text-center shadow-lg group">
+                <h2 class="text-3xl font-bold mb-3 text-pink-300">Sound Memory</h2>
+                <p class="text-gray-400 mb-4">Recall sound sequences.</p>
+                <div class="flex flex-col items-center space-y-2">
+                    <div class="flex space-x-2 mb-2">
+                        <label class="inline-flex items-center text-gray-300 cursor-not-allowed">
+                            <input type="radio" name="soundMemoryDifficulty" value="easy" class="form-radio text-blue-500" disabled checked>
+                            <span class="ml-2">Easy</span>
+                        </label>
+                        <label class="inline-flex items-center text-gray-300 cursor-not-allowed">
+                            <input type="radio" name="soundMemoryDifficulty" value="hard" class="form-radio text-blue-500" disabled>
+                            <span class="ml-2">Hard</span>
+                        </label>
+                    </div>
+                    <button data-game-path="src/games/sound-memory/index.html" class="play-button px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full shadow-lg transform transition-transform duration-200 hover:scale-105 cursor-not-allowed opacity-50">
+                        Play
+                    </button>
+                </div>
+            </div>
+
+            <!-- Game Card: Memory (Card Matching) -->
+            <div class="game-card block bg-gray-700 bg-opacity-80 rounded-xl p-6 text-center shadow-lg group">
+                <h2 class="text-3xl font-bold mb-3 text-lime-300">Memory</h2>
+                <p class="text-gray-400 mb-4">Match pairs to win.</p>
                 <div class="flex flex-col items-center space-y-2">
                     <div class="flex space-x-2 mb-2">
                         <label class="inline-flex items-center text-white">
-                            <input type="radio" name="gravityWaveDifficulty" value="easy" class="form-radio text-blue-500" checked>
+                            <input type="radio" name="memoryDifficulty" value="easy" class="form-radio text-blue-500" checked>
                             <span class="ml-2">Easy</span>
                         </label>
                         <label class="inline-flex items-center text-white">
-                            <input type="radio" name="gravityWaveDifficulty" value="hard" class="form-radio text-blue-500">
+                            <input type="radio" name="memoryDifficulty" value="hard" class="form-radio text-blue-500">
                             <span class="ml-2">Hard</span>
                         </label>
                         <label class="inline-flex items-center text-white">
-                            <input type="radio" name="gravityWaveDifficulty" value="difficult" class="form-radio text-blue-500">
+                            <input type="radio" name="memoryDifficulty" value="difficult" class="form-radio text-blue-500">
                             <span class="ml-2">Difficult</span>
                         </label>
                     </div>
-                    <button data-game-path="src/games/gravity-wave/index.html" class="play-button px-6 py-3 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-full shadow-lg transform transition-transform duration-200 hover:scale-105">
+                    <button data-game-path="src/games/memory/index.html" class="play-button px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-full shadow-lg transform transition-transform duration-200 hover:scale-105">
+                        Play
+                    </button>
+                </div>
+            </div>
+
+            <!-- Game Card: Dots and Box -->
+            <div class="game-card block bg-gray-700 bg-opacity-80 rounded-xl p-6 text-center shadow-lg group">
+                <h2 class="text-3xl font-bold mb-3 text-orange-300">Dots and Box</h2>
+                <p class="text-gray-400 mb-4">Connect dots, claim boxes.</p>
+                <div class="flex flex-col items-center space-y-2">
+                    <div class="flex space-x-2 mb-2">
+                        <label class="inline-flex items-center text-gray-300 cursor-not-allowed">
+                            <input type="radio" name="dotsAndBoxDifficulty" value="easy" class="form-radio text-blue-500" disabled checked>
+                            <span class="ml-2">Easy</span>
+                        </label>
+                        <label class="inline-flex items-center text-gray-300 cursor-not-allowed">
+                            <input type="radio" name="dotsAndBoxDifficulty" value="hard" class="form-radio text-blue-500" disabled>
+                            <span class="ml-2">Hard</span>
+                        </label>
+                    </div>
+                    <button data-game-path="src/games/dots-and-box/index.html" class="play-button px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full shadow-lg transform transition-transform duration-200 hover:scale-105 cursor-not-allowed opacity-50">
+                        Play
+                    </button>
+                </div>
+            </div>
+
+            <!-- Game Card: Chess -->
+            <div class="game-card block bg-gray-700 bg-opacity-80 rounded-xl p-6 text-center shadow-lg group">
+                <h2 class="text-3xl font-bold mb-3 text-gray-300">Chess</h2>
+                <p class="text-gray-400 mb-4">The ultimate strategy game.</p>
+                <div class="flex flex-col items-center space-y-2">
+                    <div class="flex space-x-2 mb-2">
+                        <label class="inline-flex items-center text-gray-300 cursor-not-allowed">
+                            <input type="radio" name="chessDifficulty" value="easy" class="form-radio text-blue-500" disabled checked>
+                            <span class="ml-2">Easy</span>
+                        </label>
+                        <label class="inline-flex items-center text-gray-300 cursor-not-allowed">
+                            <input type="radio" name="chessDifficulty" value="hard" class="form-radio text-blue-500" disabled>
+                            <span class="ml-2">Hard</span>
+                        </label>
+                    </div>
+                    <button data-game-path="src/games/chess/index.html" class="play-button px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full shadow-lg transform transition-transform duration-200 hover:scale-105 cursor-not-allowed opacity-50">
                         Play
                     </button>
                 </div>
