@@ -3,12 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hangman Game</title>
+    <title>Hangman Protocol</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
+        /* General Body and Container Styling */
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f0f2f5;
-            color: #333;
+            font-family: 'Roboto Mono', monospace; /* Futuristic/console font */
+            background-color: #0d0d0d; /* Very dark background for horror/futuristic */
+            color: #00ff00; /* Classic green terminal text */
             display: flex;
             justify-content: center;
             align-items: center;
@@ -16,42 +18,83 @@
             margin: 0;
             padding: 20px;
             box-sizing: border-box;
+            overflow: hidden; /* Prevent scrollbar from scanlines */
+            position: relative; /* For scanlines effect */
+            filter: grayscale(10%); /* Subtle desaturation for horror */
         }
+
+        /* CRT Scanline Overlay (Nostalgic/Horror) */
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                #0d0d0d 0,
+                #0d0d0d 1px,
+                rgba(0, 255, 0, 0.05) 2px,
+                rgba(0, 255, 0, 0.05) 3px
+            );
+            pointer-events: none; /* Allow clicks through */
+            opacity: 0.1; /* Subtle scanlines */
+            z-index: 1;
+        }
+
         .container {
-            background-color: #ffffff;
+            background-color: rgba(10, 10, 10, 0.95); /* Slightly lighter dark for contrast */
+            border: 2px solid #00ff00; /* Green border */
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.5), inset 0 0 10px rgba(0, 255, 0, 0.3); /* Green glow */
             padding: 30px 40px;
-            border-radius: 12px;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+            border-radius: 5px; /* Sharp corners for futuristic */
             text-align: center;
             width: 90%;
             max-width: 550px;
             box-sizing: border-box;
+            position: relative;
+            z-index: 2; /* Above scanlines */
+            animation: flicker 1.5s infinite alternate; /* Subtle horror flicker */
         }
+
+        /* Text and Typography */
         h1 {
-            color: #2c3e50;
+            font-family: 'Press Start 2P', cursive; /* Pixelated font for nostalgia */
+            color: #ff0000; /* Warning red for horror */
             margin-bottom: 25px;
-            font-size: 2.2em;
+            font-size: 1.8em; /* Slightly smaller to fit pixel font */
+            text-shadow: 0 0 8px rgba(255, 0, 0, 0.7); /* Red glow */
+            letter-spacing: 2px;
         }
+
         #word-display {
+            font-family: 'Press Start 2P', cursive; /* Pixelated for nostalgia */
             font-size: 3em;
-            letter-spacing: 8px;
+            letter-spacing: 10px; /* Wider spacing */
             margin: 35px 0;
             font-weight: bold;
-            color: #e74c3c;
-            min-height: 1.2em; /* Ensure space even if word is empty */
+            color: #00ff00; /* Bright green */
+            text-shadow: 0 0 12px rgba(0, 255, 0, 0.7); /* Green glow */
+            min-height: 1.2em;
+            word-wrap: break-word; /* Ensure long words break */
         }
+
         .info {
-            font-size: 1.1em;
+            font-size: 1em; /* Standard size for info */
             margin-bottom: 12px;
-            color: #555;
+            color: #00dd00; /* Slightly desaturated green */
         }
+
         .message {
-            color: #2980b9;
+            color: #ffaa00; /* Amber for warning/feedback */
             font-weight: bold;
             margin-top: 20px;
-            font-size: 1.1em;
-            min-height: 1.2em; /* Ensure space for messages */
+            font-size: 1em;
+            min-height: 1.2em;
+            text-shadow: 0 0 5px rgba(255, 170, 0, 0.5); /* Subtle glow */
         }
+
+        /* Input and Buttons */
         .game-input {
             margin-top: 30px;
             display: flex;
@@ -60,79 +103,111 @@
             gap: 10px;
         }
         .game-input input[type="text"] {
+            background-color: #1a1a1a; /* Dark input background */
+            color: #00ff00; /* Green text input */
             padding: 12px 18px;
             font-size: 1.3em;
-            border: 2px solid #ddd;
-            border-radius: 8px;
+            border: 1px solid #00ff00; /* Green border */
+            border-radius: 3px;
             width: 90px;
             text-align: center;
             outline: none;
-            transition: border-color 0.3s ease;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: inset 0 0 5px rgba(0, 255, 0, 0.2); /* Inner glow */
         }
         .game-input input[type="text"]:focus {
-            border-color: #3498db;
+            border-color: #ffff00; /* Yellow border on focus */
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.7), inset 0 0 8px rgba(0, 255, 0, 0.4); /* Stronger glow */
         }
         .game-input button {
             padding: 12px 25px;
             font-size: 1.3em;
-            background-color: #2ecc71;
-            color: white;
-            border: none;
-            border-radius: 8px;
+            background-color: #2e8b57; /* Darker green for buttons */
+            color: white; /* White text on buttons */
+            border: 1px solid #00ff00; /* Green button border */
+            border-radius: 3px;
             cursor: pointer;
-            transition: background-color 0.3s ease, transform 0.1s ease;
+            transition: background-color 0.3s ease, transform 0.1s ease, box-shadow 0.3s ease;
+            box-shadow: 0 0 8px rgba(0, 255, 0, 0.5); /* Button glow */
         }
         .game-input button:hover {
-            background-color: #27ae60;
+            background-color: #228b22; /* Even darker green on hover */
             transform: translateY(-2px);
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.8), 0 0 5px rgba(255, 255, 0, 0.5); /* Brighter glow */
         }
         .game-input button:active {
             transform: translateY(0);
         }
         .new-game-btn {
-            background-color: #9b59b6 !important;
+            background-color: #8b0000 !important; /* Dark red for restart (horror) */
+            border-color: #ff0000 !important; /* Bright red border */
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.7) !important; /* Red glow */
             margin-top: 25px;
             padding: 12px 30px !important;
         }
         .new-game-btn:hover {
-            background-color: #8e44ad !important;
+            background-color: #a00000 !important; /* Slightly lighter red on hover */
+            box-shadow: 0 0 18px rgba(255, 0, 0, 0.9), 0 0 5px rgba(255, 255, 0, 0.5) !important; /* Intense red glow */
         }
+
         .help-info {
             font-size: 0.9em;
-            color: #7f8c8d;
+            color: #7f8c8d; /* Muted gray for less importance */
             margin-top: 15px;
             line-height: 1.4;
+            text-shadow: none; /* No glow on help text */
         }
+
+        /* Game Over Screen */
         .game-over-screen {
-            background-color: #ecf0f1;
+            background-color: rgba(26, 26, 26, 0.9); /* Darker background for game over */
             padding: 25px;
-            border-radius: 10px;
+            border-radius: 5px;
             margin-top: 30px;
-            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.05);
+            box-shadow: inset 0 0 10px rgba(255, 0, 0, 0.3); /* Red inner shadow */
+            border: 1px dashed #ff0000; /* Dashed red border */
         }
         .game-over-screen h2 {
-            color: #2c3e50;
+            font-family: 'Press Start 2P', cursive;
+            color: #ff0000; /* Red for game over */
             margin-bottom: 20px;
-            font-size: 1.8em;
+            font-size: 1.5em;
+            text-shadow: 0 0 10px rgba(255, 0, 0, 0.8);
         }
         .game-over-screen p {
-            font-size: 1.3em;
+            font-size: 1.1em;
             margin-bottom: 15px;
+            color: #00dd00; /* Green for info */
         }
         .game-over-screen strong {
-            color: #e74c3c;
+            color: #ff0000; /* Highlight important words in red */
+            text-shadow: 0 0 5px rgba(255, 0, 0, 0.5);
+        }
+
+        /* Animations */
+        @keyframes flicker {
+            0%, 100% { opacity: 1; }
+            5% { opacity: 0.95; }
+            10% { opacity: 1; }
+            15% { opacity: 0.9; }
+            20% { opacity: 1; }
+            25% { opacity: 0.97; }
+            30% { opacity: 1; }
+            50% { opacity: 0.92; }
+            70% { opacity: 1; }
+            90% { opacity: 0.98; }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Welcome to Hangman!</h1>
-        <p class="info">I am thinking of a word that is <span id="word-length-display">?</span> letters long.</p>
+        <h1>ACCESS PROTOCOL: HANGMAN</h1>
+        <p class="info">INITIATING WORD SEQUENCE: <span id="word-length-display">?</span> CHARACTERS.</p>
 
         <div id="word-display"></div>
 
-        <p class="info">You have <span id="guesses-remaining">10</span> guesses left.</p>
-        <p class="info">Available letters: <span id="available-letters"></span></p>
+        <p class="info">REMAINING ATTEMPTS: <span id="guesses-remaining">10</span></p>
+        <p class="info">AVAILABLE INPUTS: <span id="available-letters"></span></p>
 
         <p class="message" id="game-message"></p>
 
@@ -140,9 +215,9 @@
             <form class="game-input" onsubmit="handleGuess(event)">
                 <input type="text" id="guess-input" maxlength="1" pattern="[a-zA-Z!]"
                        title="Enter a letter or '!' for help" required autofocus>
-                <button type="submit">Guess</button>
+                <button type="submit">TRANSMIT</button>
             </form>
-            <p class="help-info">Type '!' for help (costs 3 guesses and needs at least 3 guesses remaining).</p>
+            <p class="help-info">INPUT '!' FOR DATA ASSISTANCE (COST: 3 ATTEMPTS. MINIMUM 3 ATTEMPTS REQUIRED).</p>
         </div>
 
         <div id="game-over-screen" style="display: none;">
@@ -150,7 +225,7 @@
                 <h2 id="final-result"></h2>
                 <p id="final-word"></p>
                 <p id="final-score"></p>
-                <button onclick="newGame()" class="new-game-btn">Play Again</button>
+                <button onclick="newGame()" class="new-game-btn">RE-INITIALIZE PROTOCOL</button>
             </div>
         </div>
     </div>
@@ -179,22 +254,11 @@
         // IMPORTANT: Paste your desired words from words.txt into this array.
         // Each word should be in quotes and separated by a comma.
         const wordlist = [
-            "awkward", "bagpipes", "banjo", "bayou", "bikini", "blitz", "bookworm", "boxcar", "buzzard",
-            "cobweb", "cockiness", "croquet", "dizzying", "duplex", "dwarves", "embezzle", "espionage",
-            "exodus", "faking", "fishhook", "fjord", "fluffiness", "fuchsia", "gabby", "galaxy", "galvanize",
-            "gazebo", "gimcrack", "gizzard", "gnarly", "gossip", "grogginess", "haiku", "haphazard",
-            "hyphen", "icebox", "injury", "ivory", "ivy", "jackpot", "jaundice", "jawbreaker", "jazziest",
-            "jelly", "jigsaw", "jinx", "jockey", "joking", "jovial", "joyful", "juicy", "jumbo", "kayak",
-            "kiosk", "klutz", "knapsack", "larynx", "lengths", "lucky", "luxury", "lymph", "marquis",
-            "matrix", "megahertz", "mnemonic", "mystify", "naphtha", "nightclub", "numbskull", "onyx",
-            "ovary", "oxidize", "oxygen", "pajama", "peekaboo", "phlegm", "pixel", "pizazz", "pneumonia",
-            "polka", "pshaw", "psyche", "puzzling", "quartz", "queue", "quip", "quiz", "rhythm", "rickshaw",
-            "schnapps", "scratch", "sphinx", "spritz", "squawk", "staff", "strength", "stretch", "stronghold",
-            "stymied", "subway", "swivel", "syndrome", "thriftless", "thumbscrew", "topaz", "transcript",
-            "transgress", "transplant", "triphthong", "twelfth", "unzip", "uptown", "vaporize", "vixen",
-            "vodka", "voodoo", "vortex", "walkway", "waltz", "wave", "wavy", "waxy", "wheezy", "whiskey",
-            "whistling", "witchcraft", "wizard", "woozy", "wristwatch", "xylophone", "yachtsman", "yippee",
-            "yummy", "zigzag", "zipper", "zodiac", "zombie"
+            "abominable", "apocalypse", "apparition", "cadaver", "chilling", "crematory", "cryptic",
+            "dreadful", "eerie", "eldritch", "enigma", "foreboding", "ghastly", "haunted", "hideous",
+            "horrific", "macabre", "morbidity", "ominous", "phantom", "poltergeist", "putrefy",
+            "revelation", "shadowy", "specter", "supernatural", "terrifying", "unearthly", "unsettling",
+            "vampire", "venomous", "wraith", "xenomorph", "zeppelin", "zombie"
         ];
         // END OF WORD LIST
 
@@ -251,7 +315,7 @@
             
             // Check if game is already over
             if (guessesRemaining <= 0 || hasPlayerWon(secretWord, lettersGuessed)) {
-                displayMessage("Game is over. Click 'Play Again' to start a new game.");
+                displayMessage("PROTOCOL TERMINATED. RE-INITIALIZE TO PROCEED.");
                 return;
             }
 
@@ -260,24 +324,24 @@
 
             // Input validation
             if (!/^[a-z!]$/.test(guess)) { // Check if it's a single alphabet letter or '!'
-                displayMessage("Oops! That is not a valid letter. Please input a letter from the alphabet or '!' for help.");
+                displayMessage("ERROR: INVALID INPUT. ACCESS REQUIRED: ALPHABETIC CHARACTER OR '!'");
                 return;
             }
 
             // Help option handling
             if (guess === "!") {
                 if (!withHelp) {
-                    displayMessage("Help is not enabled for this game.");
+                    displayMessage("DATA ASSISTANCE PROTOCOL NOT ENABLED.");
                 } else if (guessesRemaining < 3) {
-                    displayMessage("Sorry, not enough guesses left to use help.");
+                    displayMessage("WARNING: INSUFFICIENT ATTEMPTS FOR DATA ASSISTANCE (MIN 3 REQUIRED).");
                 } else {
                     const revealed = revealLetter(secretWord, lettersGuessed);
                     if (revealed) {
                         lettersGuessed.push(revealed);
                         guessesRemaining -= 3;
-                        displayMessage(`Letter revealed: ${revealed.toUpperCase()}`);
+                        displayMessage(`DATA REVEALED: ${revealed.toUpperCase()}`);
                     } else {
-                        displayMessage("No unguessed letters to reveal."); // All letters are already guessed
+                        displayMessage("NO UNREVEALED DATA REMAINING."); // All letters are already guessed
                     }
                 }
                 updateUI(); // Update UI after help
@@ -286,7 +350,7 @@
 
             // Check if letter was already guessed
             if (lettersGuessed.includes(guess)) {
-                displayMessage("Oops! You've already guessed that letter.");
+                displayMessage("WARNING: INPUT ALREADY PROCESSED.");
                 return;
             }
 
@@ -295,15 +359,16 @@
 
             // Process guess
             if (secretWord.includes(guess)) {
-                displayMessage("Good guess!");
+                displayMessage("STATUS: GUESS CONFIRMED. PROTOCOL CONTINUES.");
             } else {
                 // Wrong vowel costs 2 guesses, consonant costs 1
                 if ("aeiou".includes(guess)) {
                     guessesRemaining -= 2;
+                    displayMessage("ERROR: INCORRECT VOWEL. ATTEMPT DECREMENTED BY 2.");
                 } else {
                     guessesRemaining -= 1;
+                    displayMessage("ERROR: INCORRECT CONSONANT. ATTEMPT DECREMENTED BY 1.");
                 }
-                displayMessage("Oops! That letter is not in my word.");
             }
             updateUI(); // Update UI after processing guess
         }
@@ -313,16 +378,16 @@
             gameOverScreenDiv.style.display = 'block'; // Show game over screen
 
             if (hasPlayerWon(secretWord, lettersGuessed)) {
-                finalResultH2.textContent = "Congratulations, you won!";
+                finalResultH2.textContent = "PROTOCOL SUCCESSFUL. ACCESS GRANTED.";
                 const uniqueLetters = new Set(secretWord).size;
                 const score = (guessesRemaining + 4 * uniqueLetters) + (3 * secretWord.length);
-                finalScoreP.textContent = `Your total score for this game is: ${score}`;
-                finalWordP.textContent = `The word was: ${secretWord.toUpperCase()}`;
+                finalScoreP.textContent = `FINAL SCORE: ${score} UNITS.`;
+                finalWordP.textContent = `TARGET WORD: ${secretWord.toUpperCase()}`;
                 finalWordP.style.display = 'block'; // Ensure word is visible
             } else {
-                finalResultH2.textContent = "Game Over!";
-                finalWordP.textContent = `The word was: ${secretWord.toUpperCase()}`;
-                finalScoreP.textContent = ''; // Clear score if lost
+                finalResultH2.textContent = "PROTOCOL FAILURE. ACCESS DENIED.";
+                finalWordP.textContent = `TARGET WORD WAS: ${secretWord.toUpperCase()}`;
+                finalScoreP.textContent = 'SYSTEM LOCKDOWN INITIATED.'; // Clear score if lost
                 finalWordP.style.display = 'block'; // Ensure word is visible
             }
         }
@@ -330,13 +395,13 @@
         function newGame() {
             if (wordlist.length === 0) {
                 console.error("The word list is empty! Please add words to the 'wordlist' array in the script.");
-                displayMessage("Error: Word list is empty. Game cannot start.");
+                displayMessage("CRITICAL ERROR: WORD DATABASE EMPTY. CANNOT INITIATE PROTOCOL.");
                 return;
             }
             secretWord = chooseWord(wordlist);
             lettersGuessed = [];
             guessesRemaining = 10;
-            displayMessage("New game started!");
+            displayMessage("PROTOCOL RE-INITIALIZED. STANDBY.");
             
             // Reset UI visibility
             gameControlsDiv.style.display = 'block';
