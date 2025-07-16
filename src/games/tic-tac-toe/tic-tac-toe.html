@@ -1,85 +1,504 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tic-Tac-Toe - WaveCore</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts - Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-        canvas {
-            background-color: #1a1a1a; /* Dark background for game */
-            touch-action: none; /* Prevent touch scrolling/zooming on canvas */
-        }
-        /* Specific wave-themed CSS for Tic-Tac-Toe */
-        .game-container {
-            background: linear-gradient(135deg, #2a0f0f, #3b1e1e, #2a0f0f); /* Dark red/brown gradient */
-            background-size: 400% 400%;
-            animation: subtle-gradient-shift 30s ease infinite alternate;
-        }
-        @keyframes subtle-gradient-shift {
-            0% { background-position: 0% 0%; }
-            100% { background-position: 100% 100%; }
-        }
+<html lang='en'>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Tic-Tac-Toe</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+        <style>
+            body {
+                font-family: 'Inter', sans-serif;
+                background-color: #000;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 100vh;
+                margin: 0;
+                overflow: hidden;
 
-        /* Custom button styling for a more wave-like feel */
-        .wave-button {
-            background-image: linear-gradient(to right, #60A5FA, #3B82F6); /* Blue gradient */
+            }
+            .container {
+                background-color: #1a1a1a;
+                border-radius: 1rem;
+                padding: 2rem;
+                box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+                text-align: center;
+                max-width: 90%;
+                width: 600px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+            }
+            .board {
+                display: grid;
+                grid-template-columns: repeat(3,80px);
+                grid-template-rows: repeat(3, 80px);
+                gap: 5px;
+                margin: 2rem auto;
+                border:  3px solid #fff;
+                border-radius: 0.5rem;
+                overflow: hidden;
+            }
+            .cell {
+                width: 80px;
+                height: 80px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                font-size: 3rem;
+                font-weight: bold;
+                color: #fff;
+                cursor: pointer;
+                transition:  background-color 0.2s ease;
+                background-color: #333;
+                border-radius: 0.25rem;
+            }
+            .cell:hover {
+                background-color: #555;
+            }
+            .cell:occupied{
+                cursor: default;
+                background-color: #222;
+            }
+            .button {
+                padding: 0.75rem 1.5rem;
+                font-size: 1.125rem;
+                font-weight: 600;
+                border-radius: 0.5rem;
+            cursor: pointer;
+        transition: background-color 0.2s ease, transform 0.1s ease;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                }
+            .button:hover{
+                transform: translateY(-2px);
+            }
+            .button:active{
+                transform: translateY(0);
+            }
+            .button-primary{
+                background-color: #4caf50;
+                 color: white;
             border: none;
-            border-radius: 9999px; /* Fully rounded */
-            padding: 0.75rem 1.5rem;
-            font-weight: 600;
+            background-image: linear-gradient(to bottom right, #4CAF50, #45a049);
+        }
+        .button-primary:hover {
+            background-color: #45a049;
+            background-image: linear-gradient(to bottom right, #45a049, #3e8e41);
+        }
+        .button-secondary {
+            background-color: #008CBA; /* Blue */
             color: white;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
-            transition: all 0.2s ease-in-out;
+            border: none;
+            background-image: linear-gradient(to bottom right, #008CBA, #007ba7);
+        }
+        .button-secondary:hover {
+            background-color: #007ba7;
+            background-image: linear-gradient(to bottom right, #007ba7, #006a92);
+        }
+        .message-box {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #333;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            display: none; /* Hidden by default */
+            text-align: center;
+        }
+        .message-box button {
+            margin-top: 15px;
+            padding: 8px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
             cursor: pointer;
         }
-        .wave-button:hover {
-            transform: translateY(-2px) scale(1.02);
-            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1);
-            background-image: linear-gradient(to right, #3B82F6, #2563EB); /* Darker blue on hover */
-        }
-        .wave-button:active {
-            transform: translateY(0);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        .message-box button:hover {
+            background-color: #45a049;
         }
     </style>
 </head>
-<body class="bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 text-white p-4">
-    <div class="container mx-auto max-w-6xl bg-gray-800 bg-opacity-70 rounded-2xl shadow-2xl p-8 md:p-12 border border-blue-700 text-white flex flex-col items-center justify-center min-h-[calc(100vh-2rem)] game-container">
-        <header class="text-center mb-8">
-            <h1 class="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-red-600 mb-2">
-                Tic-Tac-Toe
-            </h1>
-            <p id="gameMessage" class="text-lg md:text-xl text-gray-300 min-h-[1.5em]">
-                Select game mode to start.
-            </p>
-        </header>
+<body class="bg-black text-white flex items-center justify-center min-h-screen">
+    <div class="container">
+        <h1 id="game-title" class="text-4xl font-bold mb-8 text-white">Play Tic-Tac-Toe</h1>
 
-        <main class="flex-grow flex flex-col items-center justify-center w-full">
-            <div id="modeSelection" class="flex space-x-4 mb-8">
-                <button id="playFriendBtn" class="wave-button">Play with Friend</button>
-                <button id="playBotBtn" class="wave-button">Play with Bot</button>
+        <!-- Player Selection Screen -->
+        <div id="player-selection" class="flex flex-col items-center space-y-6">
+            <p class="text-xl text-gray-300">Choose your player:</p>
+            <div class="flex space-x-6">
+                <button id="play-x-button" class="button button-primary">Play as X</button>
+                <button id="play-o-button" class="button button-secondary">Play as O</button>
             </div>
-            <canvas id="ticTacToeCanvas" class="bg-gray-700 border border-gray-600 rounded-lg w-full max-w-md aspect-square"></canvas>
-            <button id="resetBtn" class="wave-button mt-8 hidden">Reset Game</button>
-        </main>
+        </div>
 
-        <footer class="mt-8">
-            <a href="index.html" class="inline-flex items-center px-6 py-3 bg-blue-700 hover:bg-blue-800 text-white font-semibold rounded-full shadow-lg transform transition-transform duration-200 hover:scale-105">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 15l-3-3m0 0l3-3m-3 3h8M3 12a9 9 0 1118 0 9 9 0 01-18 0z"></path></svg>
-                Back to WaveCore Hub
-            </a>
-        </footer>
+        <!-- Game Board Screen -->
+        <div id="game-screen" class="hidden flex flex-col items-center">
+            <div class="board" id="game-board">
+                <!-- Cells will be dynamically generated here by JavaScript -->
+            </div>
+            <button id="play-again-button" class="button button-primary mt-8 hidden">Play Again</button>
+        </div>
     </div>
-    <script src="tic-tac-toe.js"></script>
+
+    <!-- Custom Message Box -->
+    <div id="message-box" class="message-box">
+        <p id="message-text"></p>
+        <button onclick="hideMessageBox()">OK</button>
+    </div>
+
+    <script>
+        // Game constants
+        const X = "X";
+        const O = "O";
+        const EMPTY = null;
+
+        // DOM Elements
+        const gameTitle = document.getElementById('game-title');
+        const playerSelection = document.getElementById('player-selection');
+        const gameScreen = document.getElementById('game-screen');
+        const playXButton = document.getElementById('play-x-button');
+        const playOButton = document.getElementById('play-o-button');
+        const gameBoard = document.getElementById('game-board');
+        const playAgainButton = document.getElementById('play-again-button');
+        const messageBox = document.getElementById('message-box');
+        const messageText = document.getElementById('message-text');
+
+        // Game state variables
+        let board = initial_state();
+        let user = null; // Player chosen by the user (X or O)
+        let aiTurn = false;
+        let gameOver = false;
+
+        /**
+         * Displays a custom message box instead of alert().
+         * @param {string} message - The message to display.
+         */
+        function showMessageBox(message) {
+            messageText.textContent = message;
+            messageBox.style.display = 'block';
+        }
+
+        /**
+         * Hides the custom message box.
+         */
+        function hideMessageBox() {
+            messageBox.style.display = 'none';
+        }
+
+        /**
+         * Initializes an empty Tic-Tac-Toe board.
+         * @returns {Array<Array<string|null>>} A 3x3 array representing the board.
+         */
+        function initial_state() {
+            return [
+                [EMPTY, EMPTY, EMPTY],
+                [EMPTY, EMPTY, EMPTY],
+                [EMPTY, EMPTY, EMPTY]
+            ];
+        }
+
+        /**
+         * Determines whose turn it is based on the current board state.
+         * @param {Array<Array<string|null>>} board - The current game board.
+         * @returns {string} The player whose turn it is (X or O).
+         */
+        function player(board) {
+            let x_count = 0;
+            let o_count = 0;
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    if (board[i][j] === X) {
+                        x_count++;
+                    } else if (board[i][j] === O) {
+                        o_count++;
+                    }
+                }
+            }
+            return x_count <= o_count ? X : O;
+        }
+
+        /**
+         * Returns a set of all possible actions (empty cells) on the board.
+         * @param {Array<Array<string|null>>} board - The current game board.
+         * @returns {Array<Array<number>>} An array of [row, col] pairs for empty cells.
+         */
+        function actions(board) {
+            const possibleActions = [];
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    if (board[i][j] === EMPTY) {
+                        possibleActions.push([i, j]);
+                    }
+                }
+            }
+            return possibleActions;
+        }
+
+        /**
+         * Returns the board that results from making `action` on the `board`.
+         * @param {Array<Array<string|null>>} board - The current game board.
+         * @param {Array<number>} action - The [row, col] of the chosen move.
+         * @returns {Array<Array<string|null>>} The new board state after the move.
+         * @throws {Error} If the action is invalid.
+         */
+        function result(board, action) {
+            const [i, j] = action;
+            if (board[i][j] !== EMPTY) {
+                // Using showMessageBox instead of throwing an error for user-facing issues
+                showMessageBox("Invalid action: cell already filled.");
+                return board; // Return current board if invalid
+            }
+
+            const newBoard = board.map(row => [...row]); // Deep copy
+            newBoard[i][j] = player(board);
+            return newBoard;
+        }
+
+        /**
+         * Returns the winner of the game, if there is one.
+         * @param {Array<Array<string|null>>} board - The current game board.
+         * @returns {string|null} The winning player (X or O) or null if no winner.
+         */
+        function winner(board) {
+            // Check rows
+            for (let i = 0; i < 3; i++) {
+                if (board[i][0] === board[i][1] && board[i][1] === board[i][2] && board[i][0] !== EMPTY) {
+                    return board[i][0];
+                }
+            }
+
+            // Check columns
+            for (let j = 0; j < 3; j++) {
+                if (board[0][j] === board[1][j] && board[1][j] === board[2][j] && board[0][j] !== EMPTY) {
+                    return board[0][j];
+                }
+            }
+
+            // Check diagonals
+            if (board[0][0] === board[1][1] && board[1][1] === board[2][2] && board[0][0] !== EMPTY) {
+                return board[0][0];
+            }
+            if (board[0][2] === board[1][1] && board[1][1] === board[2][0] && board[0][2] !== EMPTY) {
+                return board[0][2];
+            }
+
+            return null;
+        }
+
+        /**
+         * Returns true if game is over, false otherwise.
+         * @param {Array<Array<string|null>>} board - The current game board.
+         * @returns {boolean} True if the game is terminal, false otherwise.
+         */
+        function terminal(board) {
+            return winner(board) !== null || actions(board).length === 0;
+        }
+
+        /**
+         * Returns 1 if X has won the game, -1 if O has won, 0 otherwise.
+         * @param {Array<Array<string|null>>} board - The current game board.
+         * @returns {number} The utility value of the terminal board.
+         */
+        function utility(board) {
+            const win = winner(board);
+            if (win === X) {
+                return 1;
+            } else if (win === O) {
+                return -1;
+            }
+            return 0;
+        }
+
+        /**
+         * Returns the optimal action for the current player on the board.
+         * Implements the Minimax algorithm.
+         * @param {Array<Array<string|null>>} board - The current game board.
+         * @returns {Array<number>|null} The optimal [row, col] action, or null if game is terminal.
+         */
+        function minimax(board) {
+            if (terminal(board)) {
+                return null;
+            }
+
+            const currentPlayer = player(board);
+
+            function maxValue(state) {
+                if (terminal(state)) {
+                    return [utility(state), null];
+                }
+                let v = -Infinity;
+                let bestMove = null;
+                for (const action of actions(state)) {
+                    const [minV, _] = minValue(result(state, action));
+                    if (minV > v) {
+                        v = minV;
+                        bestMove = action;
+                    }
+                    if (v === 1) { // Alpha-beta pruning optimization
+                        break;
+                    }
+                }
+                return [v, bestMove];
+            }
+
+            function minValue(state) {
+                if (terminal(state)) {
+                    return [utility(state), null];
+                }
+                let v = Infinity;
+                let bestMove = null;
+                for (const action of actions(state)) {
+                    const [maxV, _] = maxValue(result(state, action));
+                    if (maxV < v) {
+                        v = maxV;
+                        bestMove = action;
+                    }
+                    if (v === -1) { // Alpha-beta pruning optimization
+                        break;
+                    }
+                }
+                return [v, bestMove];
+            }
+
+            const [_, move] = currentPlayer === X ? maxValue(board) : minValue(board);
+            return move;
+        }
+
+        /**
+         * Renders the game board in the DOM.
+         */
+        function renderBoard() {
+            gameBoard.innerHTML = ''; // Clear existing cells
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell', 'rounded-md', 'flex', 'items-center', 'justify-center', 'text-white', 'text-6xl', 'font-bold', 'cursor-pointer');
+                    cell.dataset.row = i;
+                    cell.dataset.col = j;
+                    cell.textContent = board[i][j] === EMPTY ? '' : board[i][j];
+
+                    if (board[i][j] !== EMPTY) {
+                        cell.classList.add('occupied');
+                    } else {
+                        cell.addEventListener('click', handleCellClick);
+                    }
+                    gameBoard.appendChild(cell);
+                }
+            }
+        }
+
+        /**
+         * Updates the game title based on the current game state.
+         */
+        function updateGameTitle() {
+            gameOver = terminal(board);
+            if (gameOver) {
+                const winnerPlayer = winner(board);
+                if (winnerPlayer === null) {
+                    gameTitle.textContent = "Game Over: Tie!";
+                } else {
+                    gameTitle.textContent = `Game Over: ${winnerPlayer} wins!`;
+                }
+                playAgainButton.classList.remove('hidden');
+            } else if (user === player(board)) {
+                gameTitle.textContent = `Your Turn (${user})`;
+            } else {
+                gameTitle.textContent = "Computer thinking...";
+            }
+        }
+
+        /**
+         * Handles a user's click on a cell.
+         * @param {Event} event - The click event.
+         */
+        function handleCellClick(event) {
+            if (gameOver || user !== player(board) || aiTurn) {
+                return; // Prevent moves if game is over, not user's turn, or AI is thinking
+            }
+
+            const row = parseInt(event.target.dataset.row);
+            const col = parseInt(event.target.dataset.col);
+
+            if (board[row][col] === EMPTY) {
+                board = result(board, [row, col]);
+                renderBoard();
+                updateGameTitle();
+                if (!terminal(board)) {
+                    setTimeout(makeAIMove, 500); // Delay AI move slightly
+                }
+            } else {
+                showMessageBox("That cell is already taken!");
+            }
+        }
+
+        /**
+         * Makes the AI's move using the minimax algorithm.
+         */
+        function makeAIMove() {
+            aiTurn = true;
+            updateGameTitle(); // Update title to "Computer thinking..."
+
+            // Simulate thinking time
+            setTimeout(() => {
+                const bestMove = minimax(board);
+                if (bestMove) {
+                    board = result(board, bestMove);
+                    renderBoard();
+                    updateGameTitle();
+                    aiTurn = false;
+                }
+            }, 1000); // 1 second delay for AI thinking
+        }
+
+        /**
+         * Resets the game to its initial state.
+         */
+        function resetGame() {
+            board = initial_state();
+            user = null;
+            aiTurn = false;
+            gameOver = false;
+            playerSelection.classList.remove('hidden');
+            gameScreen.classList.add('hidden');
+            playAgainButton.classList.add('hidden');
+            gameTitle.textContent = "Play Tic-Tac-Toe";
+            renderBoard(); // Render empty board
+        }
+
+        // Event Listeners
+        playXButton.addEventListener('click', () => {
+            user = X;
+            playerSelection.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+            renderBoard();
+            updateGameTitle();
+            if (player(board) !== user) {
+                setTimeout(makeAIMove, 500);
+            }
+        });
+
+        playOButton.addEventListener('click', () => {
+            user = O;
+            playerSelection.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+            renderBoard();
+            updateGameTitle();
+            if (player(board) !== user) {
+                setTimeout(makeAIMove, 500);
+            }
+        });
+
+        playAgainButton.addEventListener('click', resetGame);
+
+        // Initial render (empty board for player selection screen)
+        renderBoard();
+    </script>
 </body>
 </html>
