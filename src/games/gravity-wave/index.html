@@ -17,11 +17,26 @@
         }
         canvas {
             background-color: #0d1117; /* Dark space background */
+            /* Add subtle animation to canvas background if desired */
+            /* background: linear-gradient(180deg, #0d1117 0%, #1a2a3a 100%); */
+        }
+
+        /* Keyframe animation for subtle background movement */
+        @keyframes subtle-gradient-shift {
+            0% { background-position: 0% 0%; }
+            100% { background-position: 100% 100%; }
+        }
+
+        /* Apply animation to the main container for a wave-like background effect */
+        .wave-container {
+            background: linear-gradient(135deg, #0f172a, #1e293b, #0f172a); /* Dark blue/gray gradient */
+            background-size: 400% 400%; /* Larger than container to allow movement */
+            animation: subtle-gradient-shift 30s ease infinite alternate; /* Slow, continuous shift */
         }
     </style>
 </head>
 <body class="bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 text-white p-4">
-    <div class="container mx-auto max-w-6xl bg-gray-800 bg-opacity-70 rounded-2xl shadow-2xl p-8 md:p-12 border border-blue-700 text-white flex flex-col items-center justify-center min-h-[calc(100vh-2rem)]">
+    <div class="container mx-auto max-w-6xl bg-gray-800 bg-opacity-70 rounded-2xl shadow-2xl p-8 md:p-12 border border-blue-700 text-white flex flex-col items-center justify-center min-h-[calc(100vh-2rem)] wave-container">
         <header class="text-center mb-8">
             <h1 class="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-cyan-600 mb-2">
                 Gravity Wave

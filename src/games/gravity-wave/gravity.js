@@ -1,4 +1,4 @@
-// src/games/gravity-wave/gravity.js - Gravity Run Game
+// src/games/gravity-wave/gravity.js - Gravity Run Game with Wave Visuals
 
 // --- Canvas and Context ---
 const canvas = document.getElementById('gravityWaveCanvas');
@@ -18,21 +18,27 @@ const DIFFICULTY_SETTINGS = {
         gravityStrength: 0.2,
         obstacleGapMin: 120,
         obstacleGapMax: 250,
-        stuckDuration: 1500 // Longer stuck time
+        stuckDuration: 1500, // Longer stuck time
+        waveAmplitude: 10, // Smaller waves
+        waveFrequency: 0.02 // Less frequent waves
     },
     'hard': {
         gameSpeed: 2.5, // Faster
         gravityStrength: 0.3,
         obstacleGapMin: 80,
         obstacleGapMax: 180,
-        stuckDuration: 1000
+        stuckDuration: 1000,
+        waveAmplitude: 15, // Medium waves
+        waveFrequency: 0.03 // More frequent waves
     },
     'difficult': {
         gameSpeed: 3.5, // Even faster
         gravityStrength: 0.4,
         obstacleGapMin: 60,
         obstacleGapMax: 120,
-        stuckDuration: 500
+        stuckDuration: 500,
+        waveAmplitude: 20, // Larger waves
+        waveFrequency: 0.04 // Very frequent waves
     }
 };
 
@@ -41,6 +47,8 @@ let GRAVITY_STRENGTH; // How fast player falls when gravity is active
 let OBSTACLE_GAP_MIN; // Minimum horizontal space between obstacles
 let OBSTACLE_GAP_MAX; // Maximum horizontal space between obstacles
 let STUCK_DURATION; // How long player is stuck in a box
+let WAVE_AMPLITUDE; // Height of the waves
+let WAVE_FREQUENCY; // How many waves per screen
 
 const JUMP_VELOCITY = -8; // Initial vertical speed when gravity flips
 const LAND_HEIGHT_PERCENT = 0.2; // Percentage of canvas height for land areas
@@ -64,6 +72,9 @@ let player = {
 let obstacles = []; // Stores {x, y, width, height, type: 'space'|'box'|'coin', side: 'top'|'bottom'}
 let coinsCollected = 0;
 let score = 0; // Based on distance run
+
+// --- Wave Animation ---
+let waveOffset = 0; // Horizontal offset for wave animation
 
 // --- Keyboard Input ---
 const keysPressed = {}; // To track spacebar/click for gravity flip
@@ -96,24 +107,42 @@ function resizeCanvas() {
 }
 
 /**
- * Draws the land areas at the top and bottom.
+ * Draws the land areas at the top and bottom with a wavy pattern.
  */
 function drawLand() {
     const landHeight = canvasHeight * LAND_HEIGHT_PERCENT;
+    const waveLength = canvasWidth / 2; // Roughly 2 waves across the screen
 
     // Bottom Land
     ctx.fillStyle = '#228B22'; // Forest Green
-    ctx.fillRect(0, canvasHeight - landHeight, canvasWidth, landHeight);
+    ctx.beginPath();
+    ctx.moveTo(0, canvasHeight - landHeight);
+    for (let i = 0; i <= canvasWidth; i++) {
+        const yOffset = Math.sin((i + waveOffset) * WAVE_FREQUENCY) * WAVE_AMPLITUDE;
+        ctx.lineTo(i, canvasHeight - landHeight + yOffset);
+    }
+    ctx.lineTo(canvasWidth, canvasHeight);
+    ctx.lineTo(0, canvasHeight);
+    ctx.closePath();
+    ctx.fill();
     ctx.strokeStyle = '#333';
     ctx.lineWidth = 2;
-    ctx.strokeRect(0, canvasHeight - landHeight, canvasWidth, landHeight);
+    ctx.stroke();
 
     // Top Land
-    ctx.fillStyle = '#228B22'; // Forest Green
-    ctx.fillRect(0, 0, canvasWidth, landHeight);
+    ctx.beginPath();
+    ctx.moveTo(0, landHeight);
+    for (let i = 0; i <= canvasWidth; i++) {
+        const yOffset = Math.sin((i + waveOffset) * WAVE_FREQUENCY) * WAVE_AMPLITUDE;
+        ctx.lineTo(i, landHeight - yOffset); // Subtract for top wave
+    }
+    ctx.lineTo(canvasWidth, 0);
+    ctx.lineTo(0, 0);
+    ctx.closePath();
+    ctx.fill();
     ctx.strokeStyle = '#333';
     ctx.lineWidth = 2;
-    ctx.strokeRect(0, 0, canvasWidth, landHeight);
+    ctx.stroke();
 }
 
 /**
@@ -216,6 +245,9 @@ function initGame() {
     OBSTACLE_GAP_MIN = DIFFICULTY_SETTINGS[currentDifficulty].obstacleGapMin;
     OBSTACLE_GAP_MAX = DIFFICULTY_SETTINGS[currentDifficulty].obstacleGapMax;
     STUCK_DURATION = DIFFICULTY_SETTINGS[currentDifficulty].stuckDuration;
+    WAVE_AMPLITUDE = DIFFICULTY_SETTINGS[currentDifficulty].waveAmplitude;
+    WAVE_FREQUENCY = DIFFICULTY_SETTINGS[currentDifficulty].waveFrequency;
+
 
     player.x = 100;
     player.y = canvasHeight * (1 - LAND_HEIGHT_PERCENT) - PLAYER_SIZE / 2; // Start on bottom land
@@ -228,6 +260,7 @@ function initGame() {
     obstacles = [];
     coinsCollected = 0;
     score = 0;
+    waveOffset = 0; // Reset wave offset
 
     // Generate initial obstacles to fill screen
     let currentX = canvasWidth + 50; // Start off-screen
@@ -332,16 +365,18 @@ function updateGame(deltaTime) {
     // Check for landing on ground
     const landHeight = canvasHeight * LAND_HEIGHT_PERCENT;
     if (player.currentGravity === 'down') {
-        // Check bottom land
-        if (player.y + PLAYER_SIZE / 2 >= canvasHeight - landHeight) {
-            player.y = canvasHeight - landHeight - PLAYER_SIZE / 2;
+        // Check bottom land, considering wave offset
+        const groundY = canvasHeight - landHeight + Math.sin((player.x + waveOffset) * WAVE_FREQUENCY) * WAVE_AMPLITUDE;
+        if (player.y + PLAYER_SIZE / 2 >= groundY) {
+            player.y = groundY - PLAYER_SIZE / 2;
             player.vy = 0;
             player.onGround = true;
         }
     } else { // currentGravity === 'up'
-        // Check top land
-        if (player.y - PLAYER_SIZE / 2 <= landHeight) {
-            player.y = landHeight + PLAYER_SIZE / 2;
+        // Check top land, considering wave offset
+        const ceilingY = landHeight - Math.sin((player.x + waveOffset) * WAVE_FREQUENCY) * WAVE_AMPLITUDE;
+        if (player.y - PLAYER_SIZE / 2 <= ceilingY) {
+            player.y = ceilingY + PLAYER_SIZE / 2;
             player.vy = 0;
             player.onGround = true;
         }
@@ -351,6 +386,10 @@ function updateGame(deltaTime) {
     obstacles.forEach(obstacle => {
         obstacle.x -= GAME_SPEED;
     });
+
+    // Update wave offset for continuous animation
+    waveOffset -= GAME_SPEED;
+
 
     // Remove off-screen obstacles and generate new ones
     if (obstacles.length > 0 && obstacles[0].x + obstacles[0].width < 0) {
@@ -386,10 +425,11 @@ function updateGame(deltaTime) {
                 const onBottomLand = player.y + PLAYER_SIZE / 2 >= canvasHeight * (1 - LAND_HEIGHT_PERCENT) - 5; // Small buffer
                 const onTopLand = player.y - PLAYER_SIZE / 2 <= canvasHeight * LAND_HEIGHT_PERCENT + 5; // Small buffer
 
-                if (obstacle.side === 'bottom' && !onBottomLand) {
-                    endGame('Fell into a space!');
-                } else if (obstacle.side === 'top' && !onTopLand) {
-                    endGame('Fell into a space!');
+                // Check if player is *actually* on the land it should be on
+                const playerOnExpectedLand = (obstacle.side === 'bottom' && onBottomLand) || (obstacle.side === 'top' && onTopLand);
+
+                if (!playerOnExpectedLand) {
+                     endGame('Fell into a space!');
                 }
                 // If player is on the correct land, they successfully avoided the space
             } else if (obstacle.type === 'box') {
