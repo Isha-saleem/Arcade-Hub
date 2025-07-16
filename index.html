@@ -14,31 +14,7 @@
         body {
             font-family: 'Inter', sans-serif;
         }
-        /* Basic styling for radio buttons to make them more visible */
-        input[type="radio"] {
-            /* These properties are used to remove the browser's default styling */
-            /* -webkit-appearance for Chrome/Safari, -moz-appearance: none; for Firefox */
-            /* appearance is the standard property */
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
-            border: 2px solid #60A5FA; /* Blue border */
-            border-radius: 50%;
-            width: 16px;
-            height: 16px;
-            outline: none;
-            cursor: pointer;
-            transition: background-color 0.2s, border-color 0.2s;
-        }
-        input[type="radio"]:checked {
-            background-color: #3B82F6; /* Blue fill when checked */
-            border-color: #3B82F6;
-        }
-        input[type="radio"]:disabled {
-            cursor: not-allowed;
-            border-color: #9CA3AF; /* Gray border for disabled */
-            background-color: #4B5563; /* Darker background for disabled */
-        }
+        /* Radio button styles are no longer needed as they are removed from HTML */
     </style>
 </head>
 <body class="bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 text-white min-h-screen flex items-center justify-center p-4">
@@ -63,16 +39,6 @@
                 <h2 class="text-3xl font-bold mb-3 text-red-300">Tic-Tac-Toe</h2>
                 <p class="text-gray-400 mb-4">Classic grid strategy.</p>
                 <div class="flex flex-col items-center space-y-2">
-                    <div class="flex space-x-2 mb-2">
-                        <label class="inline-flex items-center text-white">
-                            <input type="radio" name="ticTacToeDifficulty" value="easy" class="form-radio text-blue-500" checked>
-                            <span class="ml-2">Easy</span>
-                        </label>
-                        <label class="inline-flex items-center text-white">
-                            <input type="radio" name="ticTacToeDifficulty" value="hard" class="form-radio text-blue-500">
-                            <span class="ml-2">Hard</span>
-                        </label>
-                    </div>
                     <button data-game-path="src/games/tic-tac-toe/tic-tac-toe.html" class="play-button px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-full shadow-lg transform transition-transform duration-200 hover:scale-105">
                         Play
                     </button>
@@ -84,16 +50,6 @@
                 <h2 class="text-3xl font-bold mb-3 text-yellow-300">Hangman</h2>
                 <p class="text-gray-400 mb-4">Guess the word, save the man.</p>
                 <div class="flex flex-col items-center space-y-2">
-                    <div class="flex space-x-2 mb-2">
-                        <label class="inline-flex items-center text-gray-300 cursor-not-allowed">
-                            <input type="radio" name="hangmanDifficulty" value="easy" class="form-radio text-blue-500" disabled checked>
-                            <span class="ml-2">Easy</span>
-                        </label>
-                        <label class="inline-flex items-center text-gray-300 cursor-not-allowed">
-                            <input type="radio" name="hangmanDifficulty" value="hard" class="form-radio text-blue-500" disabled>
-                            <span class="ml-2">Hard</span>
-                        </label>
-                    </div>
                     <button data-game-path="src/games/hangman/hangman.html" class="play-button px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full shadow-lg transform transition-transform duration-200 hover:scale-105 cursor-not-allowed opacity-50">
                         Play
                     </button>
@@ -105,16 +61,6 @@
                 <h2 class="text-3xl font-bold mb-3 text-green-300">4 in a Row</h2>
                 <p class="text-gray-400 mb-4">Connect four, win the game.</p>
                 <div class="flex flex-col items-center space-y-2">
-                    <div class="flex space-x-2 mb-2">
-                        <label class="inline-flex items-center text-gray-300 cursor-not-allowed">
-                            <input type="radio" name="fourInARowDifficulty" value="easy" class="form-radio text-blue-500" disabled checked>
-                            <span class="ml-2">Easy</span>
-                        </label>
-                        <label class="inline-flex items-center text-gray-300 cursor-not-allowed">
-                            <input type="radio" name="fourInARowDifficulty" value="hard" class="form-radio text-blue-500" disabled>
-                            <span class="ml-2">Hard</span>
-                        </label>
-                    </div>
                     <button data-game-path="src/games/4-in-a-row/4-in-a-row.html" class="play-button px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full shadow-lg transform transition-transform duration-200 hover:scale-105 cursor-not-allowed opacity-50">
                         Play
                     </button>
@@ -126,16 +72,6 @@
                 <h2 class="text-3xl font-bold mb-3 text-purple-300">Color Connect</h2>
                 <p class="text-gray-400 mb-4">Link colors, fill the board.</p>
                 <div class="flex flex-col items-center space-y-2">
-                    <div class="flex space-x-2 mb-2">
-                        <label class="inline-flex items-center text-gray-300 cursor-not-allowed">
-                            <input type="radio" name="colorConnectDifficulty" value="easy" class="form-radio text-blue-500" disabled checked>
-                            <span class="ml-2">Easy</span>
-                        </label>
-                        <label class="inline-flex items-center text-gray-300 cursor-not-allowed">
-                            <input type="radio" name="colorConnectDifficulty" value="hard" class="form-radio text-blue-500" disabled>
-                            <span class="ml-2">Hard</span>
-                        </label>
-                    </div>
                     <button data-game-path="src/games/color-connect/color-connect.html" class="play-button px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full shadow-lg transform transition-transform duration-200 hover:scale-105 cursor-not-allowed opacity-50">
                         Play
                     </button>
@@ -147,16 +83,6 @@
                 <h2 class="text-3xl font-bold mb-3 text-indigo-300">Cross Sum</h2>
                 <p class="text-gray-400 mb-4">Solve the number puzzles.</p>
                 <div class="flex flex-col items-center space-y-2">
-                    <div class="flex space-x-2 mb-2">
-                        <label class="inline-flex items-center text-gray-300 cursor-not-allowed">
-                            <input type="radio" name="crossSumDifficulty" value="easy" class="form-radio text-blue-500" disabled checked>
-                            <span class="ml-2">Easy</span>
-                        </label>
-                        <label class="inline-flex items-center text-gray-300 cursor-not-allowed">
-                            <input type="radio" name="crossSumDifficulty" value="hard" class="form-radio text-blue-500" disabled>
-                            <span class="ml-2">Hard</span>
-                        </label>
-                    </div>
                     <button data-game-path="src/games/cross-sum/cross-sum.html" class="play-button px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full shadow-lg transform transition-transform duration-200 hover:scale-105 cursor-not-allowed opacity-50">
                         Play
                     </button>
@@ -168,16 +94,6 @@
                 <h2 class="text-3xl font-bold mb-3 text-cyan-300">Word Finder</h2>
                 <p class="text-gray-400 mb-4">Find words in the grid.</p>
                 <div class="flex flex-col items-center space-y-2">
-                    <div class="flex space-x-2 mb-2">
-                        <label class="inline-flex items-center text-gray-300 cursor-not-allowed">
-                            <input type="radio" name="wordFinderDifficulty" value="easy" class="form-radio text-blue-500" disabled checked>
-                            <span class="ml-2">Easy</span>
-                        </label>
-                        <label class="inline-flex items-center text-gray-300 cursor-not-allowed">
-                            <input type="radio" name="wordFinderDifficulty" value="hard" class="form-radio text-blue-500" disabled>
-                            <span class="ml-2">Hard</span>
-                        </label>
-                    </div>
                     <button data-game-path="src/games/word-finder/word-finder.html" class="play-button px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full shadow-lg transform transition-transform duration-200 hover:scale-105 cursor-not-allowed opacity-50">
                         Play
                     </button>
@@ -189,16 +105,6 @@
                 <h2 class="text-3xl font-bold mb-3 text-pink-300">Sound Memory</h2>
                 <p class="text-gray-400 mb-4">Recall sound sequences.</p>
                 <div class="flex flex-col items-center space-y-2">
-                    <div class="flex space-x-2 mb-2">
-                        <label class="inline-flex items-center text-gray-300 cursor-not-allowed">
-                            <input type="radio" name="soundMemoryDifficulty" value="easy" class="form-radio text-blue-500" disabled checked>
-                            <span class="ml-2">Easy</span>
-                        </label>
-                        <label class="inline-flex items-center text-gray-300 cursor-not-allowed">
-                            <input type="radio" name="soundMemoryDifficulty" value="hard" class="form-radio text-blue-500" disabled>
-                            <span class="ml-2">Hard</span>
-                        </label>
-                    </div>
                     <button data-game-path="src/games/sound-memory/sound-memory.html" class="play-button px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full shadow-lg transform transition-transform duration-200 hover:scale-105 cursor-not-allowed opacity-50">
                         Play
                     </button>
@@ -210,20 +116,6 @@
                 <h2 class="text-3xl font-bold mb-3 text-lime-300">Memory</h2>
                 <p class="text-gray-400 mb-4">Match pairs to win.</p>
                 <div class="flex flex-col items-center space-y-2">
-                    <div class="flex space-x-2 mb-2">
-                        <label class="inline-flex items-center text-white">
-                            <input type="radio" name="memoryDifficulty" value="easy" class="form-radio text-blue-500" checked>
-                            <span class="ml-2">Easy</span>
-                        </label>
-                        <label class="inline-flex items-center text-white">
-                            <input type="radio" name="memoryDifficulty" value="hard" class="form-radio text-blue-500">
-                            <span class="ml-2">Hard</span>
-                        </label>
-                        <label class="inline-flex items-center text-white">
-                            <input type="radio" name="memoryDifficulty" value="difficult" class="form-radio text-blue-500">
-                            <span class="ml-2">Difficult</span>
-                        </label>
-                    </div>
                     <button data-game-path="src/games/memory/memory.html" class="play-button px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-full shadow-lg transform transition-transform duration-200 hover:scale-105">
                         Play
                     </button>
@@ -235,16 +127,6 @@
                 <h2 class="text-3xl font-bold mb-3 text-orange-300">Dots and Box</h2>
                 <p class="text-gray-400 mb-4">Connect dots, claim boxes.</p>
                 <div class="flex flex-col items-center space-y-2">
-                    <div class="flex space-x-2 mb-2">
-                        <label class="inline-flex items-center text-gray-300 cursor-not-allowed">
-                            <input type="radio" name="dotsAndBoxDifficulty" value="easy" class="form-radio text-blue-500" disabled checked>
-                            <span class="ml-2">Easy</span>
-                        </label>
-                        <label class="inline-flex items-center text-gray-300 cursor-not-allowed">
-                            <input type="radio" name="dotsAndBoxDifficulty" value="hard" class="form-radio text-blue-500" disabled>
-                            <span class="ml-2">Hard</span>
-                        </label>
-                    </div>
                     <button data-game-path="src/games/dots-and-box/dots-and-box.html" class="play-button px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full shadow-lg transform transition-transform duration-200 hover:scale-105 cursor-not-allowed opacity-50">
                         Play
                     </button>
@@ -256,16 +138,6 @@
                 <h2 class="text-3xl font-bold mb-3 text-gray-300">Chess</h2>
                 <p class="text-gray-400 mb-4">The ultimate strategy game.</p>
                 <div class="flex flex-col items-center space-y-2">
-                    <div class="flex space-x-2 mb-2">
-                        <label class="inline-flex items-center text-gray-300 cursor-not-allowed">
-                            <input type="radio" name="chessDifficulty" value="easy" class="form-radio text-blue-500" disabled checked>
-                            <span class="ml-2">Easy</span>
-                        </label>
-                        <label class="inline-flex items-center text-gray-300 cursor-not-allowed">
-                            <input type="radio" name="chessDifficulty" value="hard" class="form-radio text-blue-500" disabled>
-                            <span class="ml-2">Hard</span>
-                        </label>
-                    </div>
                     <button data-game-path="src/games/chess/chess.html" class="play-button px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full shadow-lg transform transition-transform duration-200 hover:scale-105 cursor-not-allowed opacity-50">
                         Play
                     </button>
