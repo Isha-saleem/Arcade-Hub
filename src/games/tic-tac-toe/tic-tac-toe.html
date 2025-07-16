@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic-Tac-Toe - WaveCore</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts - Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        canvas {
+            background-color: #1a1a1a; /* Dark background for game */
+            touch-action: none; /* Prevent touch scrolling/zooming on canvas */
+        }
+        /* Specific wave-themed CSS for Tic-Tac-Toe */
+        .game-container {
+            background: linear-gradient(135deg, #2a0f0f, #3b1e1e, #2a0f0f); /* Dark red/brown gradient */
+            background-size: 400% 400%;
+            animation: subtle-gradient-shift 30s ease infinite alternate;
+        }
+        @keyframes subtle-gradient-shift {
+            0% { background-position: 0% 0%; }
+            100% { background-position: 100% 100%; }
+        }
+
+        /* Custom button styling for a more wave-like feel */
+        .wave-button {
+            background-image: linear-gradient(to right, #60A5FA, #3B82F6); /* Blue gradient */
+            border: none;
+            border-radius: 9999px; /* Fully rounded */
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+        }
+        .wave-button:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1);
+            background-image: linear-gradient(to right, #3B82F6, #2563EB); /* Darker blue on hover */
+        }
+        .wave-button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 text-white p-4">
+    <div class="container mx-auto max-w-6xl bg-gray-800 bg-opacity-70 rounded-2xl shadow-2xl p-8 md:p-12 border border-blue-700 text-white flex flex-col items-center justify-center min-h-[calc(100vh-2rem)] game-container">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-red-600 mb-2">
+                Tic-Tac-Toe
+            </h1>
+            <p id="gameMessage" class="text-lg md:text-xl text-gray-300 min-h-[1.5em]">
+                Select game mode to start.
+            </p>
+        </header>
+
+        <main class="flex-grow flex flex-col items-center justify-center w-full">
+            <div id="modeSelection" class="flex space-x-4 mb-8">
+                <button id="playFriendBtn" class="wave-button">Play with Friend</button>
+                <button id="playBotBtn" class="wave-button">Play with Bot</button>
+            </div>
+            <canvas id="ticTacToeCanvas" class="bg-gray-700 border border-gray-600 rounded-lg w-full max-w-md aspect-square"></canvas>
+            <button id="resetBtn" class="wave-button mt-8 hidden">Reset Game</button>
+        </main>
+
+        <footer class="mt-8">
+            <a href="index.html" class="inline-flex items-center px-6 py-3 bg-blue-700 hover:bg-blue-800 text-white font-semibold rounded-full shadow-lg transform transition-transform duration-200 hover:scale-105">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 15l-3-3m0 0l3-3m-3 3h8M3 12a9 9 0 1118 0 9 9 0 01-18 0z"></path></svg>
+                Back to WaveCore Hub
+            </a>
+        </footer>
+    </div>
+    <script src="tic-tac-toe.js"></script>
+</body>
+</html>
