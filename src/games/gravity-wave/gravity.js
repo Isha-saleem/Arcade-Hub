@@ -237,7 +237,7 @@ function startLevel(currentLevel) {
             }
         } while (collisionDetected);
 
-        planets.push({
+        planets.push( {
             x: newPlanetX,
             y: newPlanetY,
             radius: radius,

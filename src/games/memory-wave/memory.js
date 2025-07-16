@@ -26,14 +26,38 @@ let isPlayerTurn = false;
 // Timeout ID for sequence display to control timing
 let sequenceTimeout;
 // Time between each light-up in the sequence (milliseconds)
-const SEQUENCE_SPEED_MS = 600;
+let SEQUENCE_SPEED_MS = 600; // Will adjust by difficulty
 // Time a light stays lit (milliseconds)
-const LIGHT_DURATION_MS = 300;
+let LIGHT_DURATION_MS = 300; // Will adjust by difficulty
 
 // Button dimensions and positions (relative to canvas size)
 // We'll use a grid of 2x2 for simplicity
 const BUTTON_SIZE_FACTOR = 0.45; // Size relative to min(width, height)
 let buttonPositions = []; // Will store {x, y, size, colorIndex} for each button
+
+// --- Difficulty Settings ---
+let currentDifficulty = 'easy'; // Default
+const DIFFICULTY_SETTINGS = {
+    'easy': {
+        initialSequenceLength: 2,
+        sequenceSpeed: 700, // Slower
+        lightDuration: 350,
+        cardsPerSide: 4 // For card matching, this would be 4x4 grid
+    },
+    'hard': {
+        initialSequenceLength: 3,
+        sequenceSpeed: 500, // Faster
+        lightDuration: 250,
+        cardsPerSide: 6 // 6x6 grid
+    },
+    'difficult': {
+        initialSequenceLength: 4,
+        sequenceSpeed: 350, // Even faster
+        lightDuration: 150,
+        cardsPerSide: 8 // 8x8 grid
+    }
+};
+
 
 // --- Utility Functions ---
 
@@ -104,7 +128,7 @@ function drawGame() {
     ctx.fillStyle = '#FFFFFF';
     ctx.font = 'bold 24px Inter';
     ctx.textAlign = 'center';
-    ctx.fillText(`Round: ${round}`, canvasWidth / 2, 40);
+    ctx.fillText(`Round: ${round} (Difficulty: ${currentDifficulty.toUpperCase()})`, canvasWidth / 2, 40);
 
     // Display game messages
     if (isPlayingSequence) {
@@ -240,10 +264,11 @@ function endGame(message) {
 
     // Reset game state after a delay or offer restart button
     setTimeout(() => {
-        // For now, just reset. Could add a "Play Again" button later.
         gameSequence = [];
         playerSequence = [];
         round = 1;
+        // Re-read difficulty on restart to ensure it's still applied
+        initializeGameFromURL(); // Re-initialize based on URL
         drawGame(); // Draw initial state
         // Optionally, add a start button here
         ctx.fillStyle = '#FFFFFF';
@@ -261,15 +286,42 @@ function startGame() {
     gameSequence = [];
     playerSequence = [];
     round = 1;
-    startRound();
+
+    // Start with initial sequence length based on difficulty
+    for (let i = 0; i < DIFFICULTY_SETTINGS[currentDifficulty].initialSequenceLength; i++) {
+        generateSequence();
+    }
+    playSequence();
+}
+
+/**
+ * Reads difficulty from URL and applies settings.
+ */
+function initializeGameFromURL() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const difficultyParam = urlParams.get('difficulty');
+
+    if (difficultyParam && DIFFICULTY_SETTINGS[difficultyParam]) {
+        currentDifficulty = difficultyParam;
+    } else {
+        currentDifficulty = 'easy'; // Default to easy if param is missing or invalid
+    }
+
+    // Apply difficulty settings
+    SEQUENCE_SPEED_MS = DIFFICULTY_SETTINGS[currentDifficulty].sequenceSpeed;
+    LIGHT_DURATION_MS = DIFFICULTY_SETTINGS[currentDifficulty].lightDuration;
+
+    // For card matching, we'd use DIFFICULTY_SETTINGS[currentDifficulty].cardsPerSide here
+    // For now, our 4-button Simon-like game doesn't change its physical layout based on difficulty.
+    // The difficulty is purely in sequence length and speed.
 }
 
 
 // --- Event Listeners and Initial Setup ---
 window.addEventListener('resize', resizeCanvas); // Adjust canvas on window resize
 
-// Initial call to set up canvas size and draw initial state
-resizeCanvas();
+// Initial setup based on URL parameters
+initializeGameFromURL();
 
 // Add initial click listener to start the game
 canvas.onclick = startGame;
@@ -279,3 +331,6 @@ ctx.fillStyle = '#FFFFFF';
 ctx.font = 'bold 24px Inter';
 ctx.textAlign = 'center';
 ctx.fillText('Click to Start', canvasWidth / 2, canvasHeight / 2);
+
+// Initial call to set up canvas size
+resizeCanvas();
