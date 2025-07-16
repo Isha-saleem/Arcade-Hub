@@ -1,48 +1,47 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Heat Wave - WaveCore</title>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heat Wave - WaveCore</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="heat.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet"> 
+    <!-- Google Fonts - Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
-        body{
+        body {
             font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        canvas {
+            background-color: #4a1a1a; /* Dark red background */
         }
     </style>
 </head>
-<body class="bg-gradient-to-br from-red-800 to-orange-800 text-white min-h-screen flex flex-col items-center justify-center p-4"></body>
-<div class="container mx-auto max-w-3xl bg-gray-800 bg-opacity-70 rounded-2xl shadow-2xl p-8 md:p-12 border border-red-600 text-center">
-        <header class="mb-8">
-            <h1 class="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-orange-300 to-red-500 mb-4">
-               Heat Wave
-               </h1>
-               <p class="text-lg md:text-xl text-gray-300">
-                Avoid rising teperatures, find water or shelter.
-               </p>
-               </header>
-               <main class="game-area bg-gray-900 bg-opacity-60 rounded-xl p-6 md:p-8 mb-8 border border-gray-700">
-                <!--Game content goes here-->
-                <p class="text-gray-400 text-center text-lg">
-                   Game mechanics for Heat Wave will be implemented here.
-                   Can you survive the scorching heat?
-                   </p>
-                   <div class="mt-6 flex justify-center">
-                    <canvas id="heatWaveCanvas" class="bg-gray-700 border border-gray-600 rounded-lg w-full max-w-xl aspect-video"></canvas>
-                   </div>
-               </main>
- <footer class="mt-8">
-    <!-- THIS IS THE LINE TO CHANGE IN ALL SIX GAME INDEX.HTML FILES -->
-    <a href="../../index.html" class="inline-flex items-center px-6 py-3 bg-blue-700 hover:bg-blue-800 text-white font-semibold rounded-full shadow-lg transform transition-transform duration-200 hover:scale-105">
-        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 15l-3-3m0 0l3-3m-3 3h8M3 12a9 9 0 1118 0 9 9 0 01-18 0z"></path></svg>
-        Back to WaveCore Hub
-    </a>
-</footer>
+<body class="bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 text-white p-4">
+    <div class="container mx-auto max-w-6xl bg-gray-800 bg-opacity-70 rounded-2xl shadow-2xl p-8 md:p-12 border border-blue-700 text-white flex flex-col items-center justify-center min-h-[calc(100vh-2rem)]">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-600 mb-2">
+                Heat Wave
+            </h1>
+            <p class="text-lg md:text-xl text-gray-300">
+                Escape the heat, survive the wave.
+            </p>
+        </header>
 
-                <div>
-                    <script src="heat.js">
-                    </script>
-                </div>
-               </html>
+        <main class="flex-grow flex items-center justify-center w-full">
+            <canvas id="heatWaveCanvas" class="bg-gray-700 border border-gray-600 rounded-lg w-full max-w-full aspect-video"></canvas>
+        </main>
+
+        <footer class="mt-8">
+            <a href="../../index.html" class="inline-flex items-center px-6 py-3 bg-blue-700 hover:bg-blue-800 text-white font-semibold rounded-full shadow-lg transform transition-transform duration-200 hover:scale-105">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 15l-3-3m0 0l3-3m-3 3h8M3 12a9 9 0 1118 0 9 9 0 01-18 0z"></path></svg>
+                Back to WaveCore Hub
+            </a>
+        </footer>
+    </div>
+    <script src="heat.js"></script>
+</body>
+</html>

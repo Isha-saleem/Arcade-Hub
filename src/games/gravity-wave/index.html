@@ -11,12 +11,10 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            /* Ensure body takes full height and allows flex centering */
             min-height: 100vh;
             display: flex;
             flex-direction: column;
         }
-        /* Custom styles for the game, if any, could go here or in gravity.css */
         canvas {
             background-color: #0d1117; /* Dark space background */
         }
@@ -29,12 +27,11 @@
                 Gravity Wave
             </h1>
             <p class="text-lg md:text-xl text-gray-300">
-                Manipulate gravity to navigate the cosmos.
+                Flip gravity to navigate the cosmic run!
             </p>
         </header>
 
         <main class="flex-grow flex items-center justify-center w-full">
-            <!-- Increased max-w-full to allow canvas to take more space -->
             <canvas id="gravityWaveCanvas" class="bg-gray-700 border border-gray-600 rounded-lg w-full max-w-full aspect-video"></canvas>
         </main>
 

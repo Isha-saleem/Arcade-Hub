@@ -1,3 +1,4 @@
+// src/games/gravity-wave/gravity.js - Gravity Run Game
 
 // --- Canvas and Context ---
 const canvas = document.getElementById('gravityWaveCanvas');
@@ -6,95 +7,169 @@ const ctx = canvas.getContext('2d');
 // --- Game State Variables ---
 let canvasWidth, canvasHeight;
 let gameRunning = false;
-let animationFrameId; // To store the requestAnimationFrame ID for stopping the loop
+let animationFrameId; // For requestAnimationFrame
+let lastTime = 0; // For delta time calculation
 
-// --- Player Ship Properties ---
-const SHIP_RADIUS = 8;
-const THRUST_ACCELERATION = 0.0005; // How much acceleration per frame from thrust (adjusted for deltaTime)
-const MAX_SPEED = 5; // Cap player speed to prevent going too fast
-const DRAG_FACTOR = 0.995; // Reduces velocity slightly each frame (simulates space drag)
-let player = {
-    x: 0,
-    y: 0,
-    vx: 0, // velocity x
-    vy: 0, // velocity y
-    radius: SHIP_RADIUS,
-    color: '#FFD700' // Gold color for the ship
+// --- Game Settings ---
+let currentDifficulty = 'easy'; // Default
+const DIFFICULTY_SETTINGS = {
+    'easy': {
+        gameSpeed: 1.5, // Slower
+        gravityStrength: 0.2,
+        obstacleGapMin: 120,
+        obstacleGapMax: 250,
+        stuckDuration: 1500 // Longer stuck time
+    },
+    'hard': {
+        gameSpeed: 2.5, // Faster
+        gravityStrength: 0.3,
+        obstacleGapMin: 80,
+        obstacleGapMax: 180,
+        stuckDuration: 1000
+    },
+    'difficult': {
+        gameSpeed: 3.5, // Even faster
+        gravityStrength: 0.4,
+        obstacleGapMin: 60,
+        obstacleGapMax: 120,
+        stuckDuration: 500
+    }
 };
 
-// --- Celestial Body (Planet) Properties ---
-const BASE_GRAVITY_CONSTANT = 0.5; // Base gravity strength
-const PLANET_MIN_RADIUS = 20;
-const PLANET_MAX_RADIUS = 60;
-const PLANET_MASS_FACTOR = 1000; // Mass is radius * PLANET_MASS_FACTOR
-let planets = [];
+let GAME_SPEED; // Pixels per frame the world moves left
+let GRAVITY_STRENGTH; // How fast player falls when gravity is active
+let OBSTACLE_GAP_MIN; // Minimum horizontal space between obstacles
+let OBSTACLE_GAP_MAX; // Maximum horizontal space between obstacles
+let STUCK_DURATION; // How long player is stuck in a box
 
-// --- Game Loop Control ---
-let lastTime = 0;
-const MAX_DELTA_TIME = 100; // Cap delta time to prevent physics glitches on lag spikes
+const JUMP_VELOCITY = -8; // Initial vertical speed when gravity flips
+const LAND_HEIGHT_PERCENT = 0.2; // Percentage of canvas height for land areas
+const PLAYER_SIZE = 20;
+const OBSTACLE_WIDTH = 40; // Width of boxes/pillars
+const COIN_SIZE = 15;
+
+// --- Player Object ---
+let player = {
+    x: 100, // Fixed horizontal position
+    y: 0,   // Vertical position, depends on current land
+    vy: 0,  // Vertical velocity
+    onGround: true,
+    currentGravity: 'down', // 'down' or 'up'
+    color: '#FFD700', // Gold
+    isStuck: false, // For 'box' obstacle
+    stuckTimer: 0
+};
+
+// --- Game Elements (Obstacles & Coins) ---
+let obstacles = []; // Stores {x, y, width, height, type: 'space'|'box'|'coin', side: 'top'|'bottom'}
+let coinsCollected = 0;
+let score = 0; // Based on distance run
 
 // --- Keyboard Input ---
-const keysPressed = {}; // Stores which keys are currently held down
+const keysPressed = {}; // To track spacebar/click for gravity flip
 
-// --- Level Progression ---
-let level = 1;
-let levelStartTime = 0;
-const BASE_LEVEL_DURATION_SECONDS = 15; // Time to survive per level
-let levelDurationSeconds = BASE_LEVEL_DURATION_SECONDS;
-let levelCompleteMessageTime = 0; // Timestamp for displaying "Level Complete!"
-const MESSAGE_DISPLAY_DURATION = 2000; // How long to show "Level Complete!" message (ms)
-
-// --- Utility Functions (Defined first as they are dependencies) ---
+// --- Utility Functions ---
 
 /**
- * Generates a random starfield background.
- * @param {number} numStars - Number of stars to generate.
+ * Resizes the canvas to fit its container and updates game dimensions.
  */
-function drawStarfield(numStars = 100) {
-    for (let i = 0; i < numStars; i++) {
-        const x = Math.random() * canvasWidth;
-        const y = Math.random() * canvasHeight;
-        const radius = Math.random() * 1.5; // Small stars
-        const opacity = Math.random();
-        ctx.beginPath();
-        ctx.arc(x, y, radius, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+function resizeCanvas() {
+    canvasWidth = canvas.offsetWidth;
+    canvasHeight = canvas.offsetHeight;
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+
+    // Adjust player's initial Y based on new canvas height
+    if (player.currentGravity === 'down') {
+        player.y = canvasHeight * (1 - LAND_HEIGHT_PERCENT) - PLAYER_SIZE / 2; // On bottom land
+    } else {
+        player.y = canvasHeight * LAND_HEIGHT_PERCENT + PLAYER_SIZE / 2; // On top land (after flip)
+    }
+
+    if (!gameRunning) {
+        drawGame(); // Draw initial "Click or Space to Start" state
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 24px Inter';
+        ctx.textAlign = 'center';
+        ctx.fillText('Click or Space to Start', canvasWidth / 2, canvasHeight / 2);
+    }
+}
+
+/**
+ * Draws the land areas at the top and bottom.
+ */
+function drawLand() {
+    const landHeight = canvasHeight * LAND_HEIGHT_PERCENT;
+
+    // Bottom Land
+    ctx.fillStyle = '#228B22'; // Forest Green
+    ctx.fillRect(0, canvasHeight - landHeight, canvasWidth, landHeight);
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(0, canvasHeight - landHeight, canvasWidth, landHeight);
+
+    // Top Land
+    ctx.fillStyle = '#228B22'; // Forest Green
+    ctx.fillRect(0, 0, canvasWidth, landHeight);
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(0, 0, canvasWidth, landHeight);
+}
+
+/**
+ * Draws the player character.
+ */
+function drawPlayer() {
+    ctx.beginPath();
+    // Draw player as a square for now, can be a simple shape or emoji later
+    const playerDrawX = player.x - PLAYER_SIZE / 2;
+    const playerDrawY = player.y - PLAYER_SIZE / 2;
+    ctx.roundRect(playerDrawX, playerDrawY, PLAYER_SIZE, PLAYER_SIZE, 5); // Rounded square
+    ctx.fillStyle = player.color;
+    ctx.fill();
+    ctx.strokeStyle = '#FFA500';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // If stuck, make it invisible (or semi-transparent)
+    if (player.isStuck) {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.2)'; // Faint outline
         ctx.fill();
     }
 }
 
 /**
- * Draws the player ship.
+ * Draws an obstacle (box, space indicator, or coin).
+ * @param {object} obstacle - The obstacle object.
  */
-function drawPlayer() {
+function drawObstacle(obstacle) {
     ctx.beginPath();
-    ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
-    ctx.fillStyle = player.color;
-    ctx.fill();
-    ctx.strokeStyle = '#FFA500'; // Orange border
-    ctx.lineWidth = 2;
-    ctx.stroke();
-}
-
-/**
- * Draws a celestial body (planet).
- * @param {object} planet - The planet object with x, y, radius, and color.
- */
-function drawPlanet(planet) {
-    ctx.beginPath();
-    ctx.arc(planet.x, planet.y, planet.radius, 0, Math.PI * 2);
-    ctx.fillStyle = planet.color;
-    ctx.fill();
-    ctx.strokeStyle = '#555'; // Dark border
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    // Optional: Draw a subtle gravity influence circle
-    ctx.beginPath();
-    ctx.arc(planet.x, planet.y, planet.radius * 2, 0, Math.PI * 2); // Larger radius for influence
-    ctx.strokeStyle = `rgba(0, 200, 200, 0.2)`; // Teal/Cyan translucent
-    ctx.lineWidth = 1;
-    ctx.stroke();
+    if (obstacle.type === 'box') {
+        ctx.fillStyle = '#8B4513'; // Saddle Brown
+        ctx.roundRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height, 5);
+        ctx.fill();
+        ctx.strokeStyle = '#5A2C0A';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    } else if (obstacle.type === 'space') {
+        // Spaces are gaps, not drawn directly.
+        // We can draw a subtle indicator if needed for debugging/clarity
+        // ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+        // ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+    } else if (obstacle.type === 'coin') {
+        ctx.arc(obstacle.x + COIN_SIZE / 2, obstacle.y + COIN_SIZE / 2, COIN_SIZE / 2, 0, Math.PI * 2);
+        ctx.fillStyle = '#FFD700'; // Gold
+        ctx.fill();
+        ctx.strokeStyle = '#DAA520';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        // Draw a "$" symbol
+        ctx.fillStyle = '#333';
+        ctx.font = 'bold 12px Inter';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('$', obstacle.x + COIN_SIZE / 2, obstacle.y + COIN_SIZE / 2);
+    }
 }
 
 /**
@@ -102,42 +177,270 @@ function drawPlanet(planet) {
  */
 function drawGame() {
     ctx.clearRect(0, 0, canvasWidth, canvasHeight); // Clear canvas
-    drawStarfield(100); // Redraw stars every frame (can optimize by drawing once to offscreen canvas)
+    drawLand();
 
-    planets.forEach(drawPlanet);
+    obstacles.forEach(drawObstacle);
     drawPlayer();
 
-    // Display Level and Time
+    // Display Score and Coins
     ctx.fillStyle = '#FFFFFF';
     ctx.font = 'bold 20px Inter';
     ctx.textAlign = 'left';
-    ctx.fillText(`Level: ${level}`, 20, 30);
+    ctx.fillText(`Score: ${Math.floor(score)}`, 20, 30);
+    ctx.fillText(`Coins: ${coinsCollected}`, 20, 60);
+    ctx.textAlign = 'right';
+    ctx.fillText(`Difficulty: ${currentDifficulty.toUpperCase()}`, canvasWidth - 20, 30);
 
-    if (gameRunning) {
-        const timeLeft = Math.max(0, levelDurationSeconds - Math.floor((performance.now() - levelStartTime) / 1000));
-        ctx.textAlign = 'right';
-        ctx.fillText(`Time: ${timeLeft}s`, canvasWidth - 20, 30);
-    }
 
-    // Display Game Over or Level Complete messages
-    if (!gameRunning && player.x === -1) { // -1 as a sentinel for game over state
-        ctx.fillStyle = '#FF4444'; // Red for game over
+    // Game Over message
+    if (!gameRunning && player.x === -1) { // Sentinel for Game Over
+        ctx.fillStyle = '#FF4444';
         ctx.font = 'bold 36px Inter';
         ctx.textAlign = 'center';
         ctx.fillText('GAME OVER!', canvasWidth / 2, canvasHeight / 2 - 20);
         ctx.fillStyle = '#FFFFFF';
         ctx.font = 'bold 24px Inter';
-        ctx.fillText('Click to Restart', canvasWidth / 2, canvasHeight / 2 + 30);
-    } else if (levelCompleteMessageTime > 0 && performance.now() - levelCompleteMessageTime < MESSAGE_DISPLAY_DURATION) {
-        ctx.fillStyle = '#00FF00'; // Green for level complete
-        ctx.font = 'bold 36px Inter';
-        ctx.textAlign = 'center';
-        ctx.fillText('LEVEL COMPLETE!', canvasWidth / 2, canvasHeight / 2);
+        ctx.fillText('Click or Space to Restart', canvasWidth / 2, canvasHeight / 2 + 30);
     }
 }
 
+// --- Game Logic Functions ---
 
-// --- Game Logic Functions (Defined before they are called by initial setup) ---
+/**
+ * Initializes the game state based on current difficulty.
+ */
+function initGame() {
+    // Apply difficulty settings
+    GAME_SPEED = DIFFICULTY_SETTINGS[currentDifficulty].gameSpeed;
+    GRAVITY_STRENGTH = DIFFICULTY_SETTINGS[currentDifficulty].gravityStrength;
+    OBSTACLE_GAP_MIN = DIFFICULTY_SETTINGS[currentDifficulty].obstacleGapMin;
+    OBSTACLE_GAP_MAX = DIFFICULTY_SETTINGS[currentDifficulty].obstacleGapMax;
+    STUCK_DURATION = DIFFICULTY_SETTINGS[currentDifficulty].stuckDuration;
+
+    player.x = 100;
+    player.y = canvasHeight * (1 - LAND_HEIGHT_PERCENT) - PLAYER_SIZE / 2; // Start on bottom land
+    player.vy = 0;
+    player.onGround = true;
+    player.currentGravity = 'down';
+    player.isStuck = false;
+    player.stuckTimer = 0;
+
+    obstacles = [];
+    coinsCollected = 0;
+    score = 0;
+
+    // Generate initial obstacles to fill screen
+    let currentX = canvasWidth + 50; // Start off-screen
+    while (currentX < canvasWidth * 2) { // Generate enough to fill two screens
+        generateNextObstacle(currentX);
+        currentX = obstacles[obstacles.length - 1].x + obstacles[obstacles.length - 1].width +
+                    (OBSTACLE_GAP_MIN + Math.random() * (OBSTACLE_GAP_MAX - OBSTACLE_GAP_MIN));
+    }
+}
+
+/**
+ * Generates the next obstacle in the sequence.
+ * @param {number} startX - The X position where the new obstacle should start.
+ */
+function generateNextObstacle(startX) {
+    const landHeight = canvasHeight * LAND_HEIGHT_PERCENT;
+    const gameAreaHeight = canvasHeight - (2 * landHeight); // Space between lands
+
+    // Randomly pick top or bottom land for the obstacle
+    const obstacleSide = Math.random() < 0.5 ? 'top' : 'bottom';
+
+    // Randomly pick obstacle type
+    const obstacleType = ['space', 'box', 'coin'][Math.floor(Math.random() * 3)];
+    let obstacleY, obstacleHeight;
+
+    if (obstacleType === 'space') {
+        obstacleHeight = PLAYER_SIZE * 2; // Just a visual height for the gap area
+        if (obstacleSide === 'bottom') {
+            obstacleY = canvasHeight - landHeight - obstacleHeight;
+        } else { // top
+            obstacleY = landHeight;
+        }
+    } else if (obstacleType === 'box') {
+        obstacleHeight = PLAYER_SIZE; // Box is player's height
+        if (obstacleSide === 'bottom') {
+            obstacleY = canvasHeight - landHeight - obstacleHeight;
+        } else { // top
+            obstacleY = landHeight;
+        }
+    } else if (obstacleType === 'coin') {
+        obstacleHeight = COIN_SIZE;
+        // Coins can be placed in the middle area or near land edges
+        if (Math.random() < 0.5) { // Near current land
+            if (obstacleSide === 'bottom') {
+                obstacleY = canvasHeight - landHeight - obstacleHeight - (Math.random() * 50);
+            } else { // top
+                obstacleY = landHeight + (Math.random() * 50);
+            }
+        } else { // In the middle of the screen (requires gravity flip to reach)
+            obstacleY = landHeight + (gameAreaHeight / 2) - (COIN_SIZE / 2) + (Math.random() * 50 - 25); // Randomize slightly
+        }
+    }
+
+    obstacles.push({
+        x: startX,
+        y: obstacleY,
+        width: OBSTACLE_WIDTH,
+        height: obstacleHeight,
+        type: obstacleType,
+        side: obstacleSide // Which land it's associated with
+    });
+}
+
+/**
+ * Handles the gravity flip (jump) action.
+ */
+function flipGravity() {
+    if (!gameRunning || player.isStuck) return;
+
+    player.onGround = false; // Player is now in the air
+    player.vy = (player.currentGravity === 'down') ? JUMP_VELOCITY : -JUMP_VELOCITY; // Apply opposite jump velocity
+    player.currentGravity = (player.currentGravity === 'down') ? 'up' : 'down'; // Flip gravity direction
+}
+
+/**
+ * Updates the game state (player movement, obstacle movement, collisions).
+ * @param {number} deltaTime - Time elapsed since last update in milliseconds.
+ */
+function updateGame(deltaTime) {
+    if (!gameRunning) return;
+
+    // Update stuck timer
+    if (player.isStuck) {
+        player.stuckTimer += deltaTime;
+        if (player.stuckTimer >= STUCK_DURATION) {
+            player.isStuck = false;
+            player.stuckTimer = 0;
+        }
+        // If stuck, player doesn't move horizontally or vertically
+        player.vy = 0;
+        return; // Skip other updates if stuck
+    }
+
+    // Apply gravity to player
+    if (!player.onGround) {
+        player.vy += (player.currentGravity === 'down' ? GRAVITY_STRENGTH : -GRAVITY_STRENGTH);
+    }
+
+    // Update player vertical position
+    player.y += player.vy;
+
+    // Check for landing on ground
+    const landHeight = canvasHeight * LAND_HEIGHT_PERCENT;
+    if (player.currentGravity === 'down') {
+        // Check bottom land
+        if (player.y + PLAYER_SIZE / 2 >= canvasHeight - landHeight) {
+            player.y = canvasHeight - landHeight - PLAYER_SIZE / 2;
+            player.vy = 0;
+            player.onGround = true;
+        }
+    } else { // currentGravity === 'up'
+        // Check top land
+        if (player.y - PLAYER_SIZE / 2 <= landHeight) {
+            player.y = landHeight + PLAYER_SIZE / 2;
+            player.vy = 0;
+            player.onGround = true;
+        }
+    }
+
+    // Move obstacles to the left
+    obstacles.forEach(obstacle => {
+        obstacle.x -= GAME_SPEED;
+    });
+
+    // Remove off-screen obstacles and generate new ones
+    if (obstacles.length > 0 && obstacles[0].x + obstacles[0].width < 0) {
+        obstacles.shift(); // Remove the first obstacle
+    }
+    // Generate new obstacle when the last one is far enough
+    if (obstacles.length === 0 || obstacles[obstacles.length - 1].x < canvasWidth - OBSTACLE_GAP_MAX) {
+        const lastObstacleX = obstacles.length > 0 ? obstacles[obstacles.length - 1].x + obstacles[obstacles.length - 1].width : canvasWidth;
+        generateNextObstacle(lastObstacleX + OBSTACLE_GAP_MIN + Math.random() * (OBSTACLE_GAP_MAX - OBSTACLE_GAP_MIN));
+    }
+
+    // --- Collision Detection with Obstacles ---
+    obstacles.forEach(obstacle => {
+        // Player bounding box for collision
+        const playerLeft = player.x - PLAYER_SIZE / 2;
+        const playerRight = player.x + PLAYER_SIZE / 2;
+        const playerTop = player.y - PLAYER_SIZE / 2;
+        const playerBottom = player.y + PLAYER_SIZE / 2;
+
+        // Obstacle bounding box
+        const obstacleLeft = obstacle.x;
+        const obstacleRight = obstacle.x + obstacle.width;
+        const obstacleTop = obstacle.y;
+        const obstacleBottom = obstacle.y + obstacle.height;
+
+        // Check for overlap
+        if (playerRight > obstacleLeft && playerLeft < obstacleRight &&
+            playerBottom > obstacleTop && playerTop < obstacleBottom) {
+
+            // Collision detected!
+            if (obstacle.type === 'space') {
+                // If player is in a 'space' obstacle and not on the correct land, it's game over
+                const onBottomLand = player.y + PLAYER_SIZE / 2 >= canvasHeight * (1 - LAND_HEIGHT_PERCENT) - 5; // Small buffer
+                const onTopLand = player.y - PLAYER_SIZE / 2 <= canvasHeight * LAND_HEIGHT_PERCENT + 5; // Small buffer
+
+                if (obstacle.side === 'bottom' && !onBottomLand) {
+                    endGame('Fell into a space!');
+                } else if (obstacle.side === 'top' && !onTopLand) {
+                    endGame('Fell into a space!');
+                }
+                // If player is on the correct land, they successfully avoided the space
+            } else if (obstacle.type === 'box') {
+                // Hit a box, get stuck
+                if (!player.isStuck) { // Only apply stuck effect once per box
+                    player.isStuck = true;
+                    player.stuckTimer = 0;
+                    // Move player slightly back to show they hit it
+                    player.x -= GAME_SPEED * 5; // Push back a bit
+                }
+            } else if (obstacle.type === 'coin') {
+                coinsCollected++;
+                // Remove collected coin
+                obstacles = obstacles.filter(o => o !== obstacle);
+            }
+        }
+    });
+
+    score += GAME_SPEED / 60; // Increase score based on distance run (per second)
+}
+
+/**
+ * The main game loop.
+ * @param {DOMHighResTimeStamp} currentTime - The current time provided by requestAnimationFrame.
+ */
+function gameLoop(currentTime) {
+    if (!gameRunning) return;
+
+    const deltaTime = currentTime - lastTime;
+    lastTime = currentTime;
+
+    updateGame(deltaTime);
+    drawGame();
+
+    animationFrameId = requestAnimationFrame(gameLoop);
+}
+
+/**
+ * Starts the game.
+ */
+function startGame() {
+    if (gameRunning) return; // Prevent starting multiple loops
+
+    // Remove the click listener once game starts
+    canvas.removeEventListener('click', handleCanvasClick);
+
+    initGame();
+    gameRunning = true;
+    lastTime = performance.now(); // Initialize lastTime for accurate delta
+    animationFrameId = requestAnimationFrame(gameLoop);
+}
 
 /**
  * Ends the game and displays a message.
@@ -146,241 +449,65 @@ function drawGame() {
 function endGame(message) {
     gameRunning = false;
     cancelAnimationFrame(animationFrameId); // Stop the game loop
-    // Reset level for next game
-    level = 1;
-    player.x = -1; // Sentinel value to indicate game over state for drawing
+    player.x = -1; // Sentinel for Game Over state for drawing
     drawGame(); // Draw final state with game over message
     console.log(message);
     // Re-enable click to start for next game
     canvas.addEventListener('click', handleCanvasClick);
+    window.removeEventListener('keydown', handleSpacebar); // Remove spacebar listener
 }
 
 /**
- * Applies gravitational forces to the player ship from all planets.
- * @param {number} deltaTime - Time elapsed since last update in milliseconds.
- */
-function applyGravity(deltaTime) {
-    planets.forEach(planet => {
-        const dx = planet.x - player.x;
-        const dy = planet.y - player.y;
-        const distanceSq = dx * dx + dy * dy; // Distance squared
-        const distance = Math.sqrt(distanceSq);
-
-        // Prevent division by zero or extremely large forces when very close
-        if (distance < player.radius + planet.radius) {
-            // Collision handled elsewhere, but prevent extreme force here
-            return;
-        }
-
-        // Calculate gravitational force magnitude
-        const forceMagnitude = planet.gravityConstant * (planet.mass / distanceSq);
-
-        // Calculate force components
-        const forceX = forceMagnitude * (dx / distance);
-        const forceY = forceMagnitude * (dy / distance);
-
-        // Apply force as acceleration (F = ma, so a = F/m_player, assuming m_player = 1 for simplicity)
-        player.vx += forceX * (deltaTime / 1000); // Convert force to acceleration over time
-        player.vy += forceY * (deltaTime / 1000);
-    });
-}
-
-/**
- * Initializes or resets the game state for a new level.
- * @param {number} currentLevel - The level to initialize.
- */
-function startLevel(currentLevel) {
-    level = currentLevel;
-    levelStartTime = performance.now();
-    levelCompleteMessageTime = 0; // Reset message display
-
-    player.x = canvasWidth / 2;
-    player.y = canvasHeight / 2;
-    player.vx = 0;
-    player.vy = 0;
-
-    planets = [];
-    const numPlanets = Math.min(10, 3 + level); // More planets for higher levels, max 10
-    const gravityConstant = BASE_GRAVITY_CONSTANT * (1 + (level - 1) * 0.1); // Stronger gravity
-    levelDurationSeconds = BASE_LEVEL_DURATION_SECONDS + (level - 1) * 5; // Longer survival time
-
-    for (let i = 0; i < numPlanets; i++) {
-        const radius = PLANET_MIN_RADIUS + Math.random() * (PLANET_MAX_RADIUS - PLANET_MIN_RADIUS);
-        const mass = radius * PLANET_MASS_FACTOR; // Mass proportional to radius
-        let newPlanetX, newPlanetY;
-        let collisionDetected;
-
-        // Ensure new planet doesn't overlap with player or existing planets
-        do {
-            collisionDetected = false;
-            newPlanetX = Math.random() * (canvasWidth - 2 * radius) + radius;
-            newPlanetY = Math.random() * (canvasHeight - 2 * radius) + radius;
-
-            // Check against player start position
-            const dxPlayer = newPlanetX - player.x;
-            const dyPlayer = newPlanetY - player.y;
-            const distPlayer = Math.sqrt(dxPlayer * dxPlayer + dyPlayer * dyPlayer);
-            if (distPlayer < player.radius + radius + 50) { // Keep a good distance from player start
-                collisionDetected = true;
-                continue;
-            }
-
-            // Check against existing planets
-            for (const existingPlanet of planets) {
-                const dx = newPlanetX - existingPlanet.x;
-                const dy = newPlanetY - existingPlanet.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                if (distance < radius + existingPlanet.radius + 10) { // Add buffer
-                    collisionDetected = true;
-                    break;
-                }
-            }
-        } while (collisionDetected);
-
-        planets.push( {
-            x: newPlanetX,
-            y: newPlanetY,
-            radius: radius,
-            mass: mass,
-            color: `hsl(${Math.random() * 360}, 70%, 50%)`, // Random vibrant color
-            gravityConstant: gravityConstant // Each planet uses the level's gravity constant
-        });
-    }
-}
-
-/**
- * Updates the game state (physics, collisions).
- * @param {number} deltaTime - Time elapsed since last update in milliseconds.
- * @param {DOMHighResTimeStamp} currentTime - The current time for level duration check.
- */
-function updateGame(deltaTime, currentTime) {
-    if (!gameRunning) return;
-
-    // Apply thrust based on arrow keys
-    if (keysPressed['ArrowUp']) {
-        player.vy -= THRUST_ACCELERATION * deltaTime;
-    }
-    if (keysPressed['ArrowDown']) {
-        player.vy += THRUST_ACCELERATION * deltaTime;
-    }
-    if (keysPressed['ArrowLeft']) {
-        player.vx -= THRUST_ACCELERATION * deltaTime;
-    }
-    if (keysPressed['ArrowRight']) {
-        player.vx += THRUST_ACCELERATION * deltaTime;
-    }
-
-    // Apply drag
-    player.vx *= DRAG_FACTOR;
-    player.vy *= DRAG_FACTOR;
-
-    applyGravity(deltaTime);
-
-    // Cap velocity
-    const currentSpeed = Math.sqrt(player.vx * player.vx + player.vy * player.vy);
-    if (currentSpeed > MAX_SPEED) {
-        player.vx = (player.vx / currentSpeed) * MAX_SPEED;
-        player.vy = (player.vy / currentSpeed) * MAX_SPEED;
-    }
-
-    // Update player position based on velocity
-    player.x += player.vx;
-    player.y += player.vy;
-
-    // --- Boundary Checks / Wrap-around ---
-    // If player goes off screen, wrap around to the other side
-    if (player.x < 0) player.x = canvasWidth;
-    if (player.x > canvasWidth) player.x = 0;
-    if (player.y < 0) player.y = canvasHeight;
-    if (player.y > canvasHeight) player.y = 0;
-
-    // --- Collision Detection ---
-    for (const planet of planets) {
-        const dx = player.x - planet.x;
-        const dy = player.y - planet.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-
-        if (distance < player.radius + planet.radius) {
-            endGame('Crashed into a celestial body!');
-            return; // Exit update loop if game over
-        }
-    }
-
-    // --- Level Completion Check ---
-    const elapsedTime = (currentTime - levelStartTime) / 1000; // in seconds
-    if (elapsedTime >= levelDurationSeconds) {
-        levelCompleteMessageTime = currentTime; // Set timestamp for message display
-        gameRunning = false; // Pause game for message
-        cancelAnimationFrame(animationFrameId); // Stop current loop
-        setTimeout(() => {
-            level++;
-            startGame(); // Start next level
-        }, MESSAGE_DISPLAY_DURATION); // Wait for message to clear
-    }
-}
-
-/**
- * The main game loop.
- * @param {DOMHighResTimeStamp} currentTime - The current time provided by requestAnimationFrame.
- */
-function gameLoop(currentTime) {
-    if (!gameRunning) return; // Ensure game is still running
-
-    const deltaTime = Math.min(currentTime - lastTime, MAX_DELTA_TIME); // Cap delta time
-    lastTime = currentTime;
-
-    updateGame(deltaTime, currentTime); // Pass currentTime for level check
-    drawGame();
-
-    animationFrameId = requestAnimationFrame(gameLoop);
-}
-
-/**
- * Starts the game (or next level).
- */
-function startGame() {
-    if (gameRunning) return; // Prevent starting multiple loops
-
-    // Remove the click listener once game starts to prevent accidental restarts
-    canvas.removeEventListener('click', handleCanvasClick);
-
-    startLevel(level); // Initialize for the current level
-    gameRunning = true;
-    lastTime = performance.now(); // Initialize lastTime for accurate delta
-    animationFrameId = requestAnimationFrame(gameLoop);
-}
-
-/**
- * Handles the initial click to start the game.
- * This function is defined here because it's used by an event listener set up early.
+ * Handles the initial click/spacebar to start the game or flip gravity.
  */
 function handleCanvasClick() {
     if (!gameRunning) {
         startGame();
+    } else {
+        flipGravity();
     }
 }
 
+/**
+ * Handles spacebar keydown for gravity flip.
+ */
+function handleSpacebar(event) {
+    if (event.key === ' ' || event.key === 'Spacebar') {
+        if (!gameRunning) {
+            startGame();
+        } else {
+            flipGravity();
+        }
+        event.preventDefault(); // Prevent default browser scrolling
+    }
+}
+
+/**
+ * Reads difficulty from URL and applies settings.
+ */
+function initializeGameFromURL() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const difficultyParam = urlParams.get('difficulty');
+
+    if (difficultyParam && DIFFICULTY_SETTINGS[difficultyParam]) {
+        currentDifficulty = difficultyParam;
+    } else {
+        currentDifficulty = 'easy'; // Default to easy if param is missing or invalid
+    }
+    // Settings will be applied in initGame()
+}
 
 // --- Event Listeners and Initial Setup ---
 window.addEventListener('resize', resizeCanvas); // Adjust canvas on window resize
 
-// Initial click listener to start the game
-// This needs to be defined after handleCanvasClick is defined
+// Initial setup based on URL parameters
+initializeGameFromURL();
+
+// Add initial click listener to start the game (and subsequent gravity flips)
 canvas.addEventListener('click', handleCanvasClick);
 
-// Keyboard input listeners
-window.addEventListener('keydown', (event) => {
-    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) {
-        keysPressed[event.key] = true;
-        event.preventDefault(); // Prevent default browser scrolling
-    }
-});
+// Keyboard input listener for spacebar
+window.addEventListener('keydown', handleSpacebar);
 
-window.addEventListener('keyup', (event) => {
-    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) {
-        keysPressed[event.key] = false;
-    }
-});
-
-// Initial call to set up canvas size and draw initial "Click to Start" state
+// Initial call to set up canvas size and draw initial "Click or Space to Start" state
 resizeCanvas();
