@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Classic Snake Game</title>
+    <style type="text/css">
+        /* Import a pixelated font for the classic arcade feel */
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+        body {
+            background-color: #22223B; /* Dark blue-purple background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden; /* Prevent scrollbars */
+            font-family: 'Press Start 2P', cursive; /* Pixel font for classic feel */
+            color: #F8F7F9; /* Light off-white for general text */
+            user-select: none; /* Prevent text selection */
+        }
+
+        #game-container {
+            border: 8px solid #4A4E69; /* Muted purple-blue border */
+            border-radius: 15px; /* Rounded corners for the game area */
+            box-shadow: 0 0 25px rgba(128, 237, 153, 0.7), /* Cyan glow */
+                        0 0 50px rgba(128, 237, 153, 0.3); /* Wider, softer cyan glow */
+            background-color: #1E1E2D; /* Darker blue canvas background */
+            position: relative;
+            outline: none; /* Remove outline on focus */
+            display: flex; /* To center the canvas */
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            padding: 25px; /* More padding around the canvas */
+            box-sizing: content-box; /* Ensure padding adds to total size */
+        }
+
+        canvas {
+            background-color: #1E1E2D; /* Ensure canvas background is dark blue */
+            display: block;
+            margin: 0; /* Remove default canvas margin */
+            border: 1px solid #33334A; /* Subtle inner border for canvas */
+        }
+
+        #score-display {
+            position: absolute;
+            top: 15px;
+            left: 25px; /* Aligned with padding */
+            font-size: 20px;
+            color: #C7F9CC; /* Light cyan for score */
+            z-index: 10;
+            text-shadow: 0 0 5px rgba(128, 237, 153, 0.8); /* Glow for score */
+        }
+
+        /* Styles for text in the game (intro, paused, game over) */
+        .game-text {
+            color: #C7F9CC; /* Light cyan for game text */
+            text-align: center;
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            top: 0;
+            left: 0;
+            background-color: rgba(30, 30, 45, 0.9); /* More opaque dark blue overlay */
+            border-radius: 15px; /* Match container border-radius */
+            padding: 20px; /* Internal padding for text */
+            box-sizing: border-box;
+        }
+
+        .game-text h1 {
+            font-size: 40px; /* Larger title */
+            margin-bottom: 20px;
+            text-shadow: 0 0 15px rgba(128, 237, 153, 1); /* Stronger cyan glow for title */
+            animation: pulse 1.5s infinite alternate; /* Pulsing effect for title */
+        }
+
+        .game-text p {
+            font-size: 22px; /* Larger body text */
+            margin: 8px 0;
+            text-shadow: 0 0 8px rgba(128, 237, 153, 0.8);
+        }
+
+        .game-text p.small {
+            font-size: 18px; /* Slightly smaller text */
+            margin-top: 20px;
+        }
+
+        /* Pulsing animation for the main title */
+        @keyframes pulse {
+            from { opacity: 1; }
+            to { opacity: 0.7; }
+        }
+    </style>
+    <!-- Tone.js library for audio generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+</head>
+<body>
+    <div id="game-container">
+        <div id="score-display">Score: 0</div>
+        <canvas id="gameCanvas"></canvas>
+    </div>
+
+    <script type="text/javascript">
+        // atom.js content (minimal modifications)
+        (function() {
+            var Game, atom, c, eventCode, requestAnimationFrame,
+                __indexOf = Array.prototype.indexOf || function(item) {
+                    for (var i = 0, l = this.length; i < l; i++) {
+                        if (i in this && this[i] === item) return i;
+                    }
+                    return -1;
+                };
+
+            requestAnimationFrame = window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame || function(callback) {
+                return window.setTimeout((function() {
+                    return callback(1000 / 60);
+                }), 1000 / 60);
+            };
+
+            window.atom = atom = {};
+
+            atom.input = {
+                _bindings: {},
+                _down: {},
+                _pressed: {},
+                _released: [],
+                mouse: {
+                    x: 0,
+                    y: 0
+                },
+                bind: function(key, action) {
+                    return this._bindings[key] = action;
+                },
+                onkeydown: function(e) {
+                    var action;
+                    action = this._bindings[eventCode(e)];
+                    if (!action) return;
+                    if (!this._down[action]) this._pressed[action] = true;
+                    this._down[action] = true;
+                    e.stopPropagation();
+                    return e.preventDefault();
+                },
+                onkeyup: function(e) {
+                    var action;
+                    action = this._bindings[eventCode(e)];
+                    if (!action) return;
+                    this._released.push(action);
+                    e.stopPropagation();
+                    return e.preventDefault();
+                },
+                clearPressed: function() {
+                    var action, _i, _len, _ref;
+                    _ref = this._released;
+                    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+                        action = _ref[_i];
+                        this._down[action] = false;
+                    }
+                    this._released = [];
+                    return this._pressed = {};
+                },
+                pressed: function(action) {
+                    return this._pressed[action];
+                },
+                down: function(action) {
+                    return this._down[action];
+                },
+                released: function(action) {
+                    return __indexOf.call(this._released, action) >= 0;
+                },
+                onmousemove: function(e) {
+                    var b, d, ev;
+                    if (window.pageXOffset !== void 0) {
+                        this.mouse.x = e.clientX + window.pageXOffset;
+                        return this.mouse.y = e.clientY + window.pageYOffset;
+                    } else {
+                        ev = window.event;
+                        d = document.documentElement;
+                        b = document.body;
+                        this.mouse.x = ev.clientX + d.scrollLeft + b.scrollLeft;
+                        return this.mouse.y = ev.clientY + d.scrollTop + b.scrollTop;
+                    }
+                },
+                onmousedown: function(e) {
+                    return this.onkeydown(e);
+                },
+                onmouseup: function(e) {
+                    return this.onkeyup(e);
+                },
+                onmousewheel: function(e) {
+                    this.onkeydown(e);
+                    return this.onkeyup(e);
+                },
+                oncontextmenu: function(e) {
+                    if (this._bindings[atom.button.RIGHT]) {
+                        e.stopPropagation();
+                        return e.preventDefault();
+                    }
+                }
+            };
+
+            document.onkeydown = atom.input.onkeydown.bind(atom.input);
+            document.onkeyup = atom.input.onkeyup.bind(atom.input);
+            document.onmouseup = atom.input.onmouseup.bind(atom.input);
+
+            atom.button = {
+                LEFT: -1,
+                MIDDLE: -2,
+                RIGHT: -3,
+                WHEELDOWN: -4,
+                WHEELUP: -5
+            };
+
+            atom.key = {
+                TAB: 9,
+                ENTER: 13,
+                ESC: 27,
+                SPACE: 32,
+                LEFT_ARROW: 37,
+                UP_ARROW: 38,
+                RIGHT_ARROW: 39,
+                DOWN_ARROW: 40
+            };
+
+            for (c = 65; c <= 90; c++) {
+                atom.key[String.fromCharCode(c)] = c;
+            }
+
+            eventCode = function(e) {
+                if (e.type === 'keydown' || e.type === 'keyup') {
+                    return e.keyCode;
+                } else if (e.type === 'mousedown' || e.type === 'mouseup') {
+                    switch (e.button) {
+                        case 0:
+                            return atom.button.LEFT;
+                        case 1:
+                            return atom.button.MIDDLE;
+                        case 2:
+                            return atom.button.RIGHT;
+                    }
+                } else if (e.type === 'mousewheel') {
+                    if (e.wheel > 0) {
+                        return atom.button.WHEELUP;
+                    } else {
+                        return atom.button.WHEELDOWN;
+                    }
+                }
+            };
+
+            atom.canvas = document.getElementById('gameCanvas');
+            atom.canvas.style.position = "relative";
+            atom.context = atom.canvas.getContext('2d');
+
+            atom.canvas.onmousemove = atom.input.onmousemove.bind(atom.input);
+            atom.canvas.onmousedown = atom.input.onmousedown.bind(atom.input);
+            atom.canvas.onmouseup = atom.input.onmouseup.bind(atom.input);
+            atom.canvas.onmousewheel = atom.input.onmousewheel.bind(atom.input);
+            atom.canvas.oncontextmenu = atom.input.oncontextmenu.bind(atom.input);
+
+            Game = (function() {
+
+                function Game() {}
+
+                Game.prototype.update = function(dt) {};
+
+                Game.prototype.draw = function() {};
+
+                Game.prototype.run = function() {
+                    var s,
+                        _this = this;
+                    if (this.running) return;
+                    this.running = true;
+                    this.last_step = Date.now(); // Initialize last_step
+                    s = function() {
+                        if (!_this.running) return;
+                        _this.step();
+                        requestAnimationFrame(s);
+                    };
+                    requestAnimationFrame(s);
+                };
+
+                Game.prototype.stop = function() {
+                    return this.running = false;
+                };
+
+                Game.prototype.step = function() {
+                    var dt, now;
+                    now = Date.now();
+                    dt = (now - this.last_step) / 1000;
+                    this.last_step = now;
+                    this.update(dt);
+                    this.draw();
+                    return atom.input.clearPressed();
+                };
+
+                return Game;
+
+            })();
+
+            atom.Game = Game;
+
+        }).call(this);
+
+        // stake.js content (compiled from stake.coffee, with modifications for classic look, audio, and single file)
+        var Game, game,
+            __hasProp = Object.prototype.hasOwnProperty,
+            __extends = function(child, parent) {
+                for (var key in parent) {
+                    if (__hasProp.call(parent, key)) child[key] = parent[key];
+                }
+
+                function ctor() {
+                    this.constructor = child;
+                }
+                ctor.prototype = parent.prototype;
+                child.prototype = new ctor;
+                child.__super__ = parent.prototype;
+                return child;
+            };
+
+        Game = (function(_super) {
+
+            __extends(Game, _super);
+
+            function Game(h, w, ps) {
+                Game.__super__.constructor.apply(this, arguments);
+                atom.input.bind(atom.key.LEFT_ARROW, 'move_left');
+                atom.input.bind(atom.key.RIGHT_ARROW, 'move_right');
+                atom.input.bind(atom.key.UP_ARROW, 'move_up');
+                atom.input.bind(atom.key.DOWN_ARROW, 'move_down');
+                atom.input.bind(atom.key.SPACE, 'toggle_pause');
+
+                this.height = h;
+                this.width = w;
+                this.pixelsize = ps;
+
+                // Set canvas and container dimensions
+                const gameContainer = document.getElementById('game-container');
+                atom.canvas.height = this.height * this.pixelsize;
+                atom.canvas.width = this.width * this.pixelsize;
+                // Adjust container size to match canvas plus padding
+                gameContainer.style.width = (atom.canvas.width + 50) + "px"; // 50px for 2x padding
+                gameContainer.style.height = (atom.canvas.height + 50) + "px"; // 50px for 2x padding
+
+                this.scoreDisplay = document.getElementById('score-display');
+
+                // --- Audio Setup ---
+                this.audioContextStarted = false;
+                // Adjusted foodSynth for an "eating" sound
+                this.foodSynth = new Tone.MembraneSynth({
+                    pitchDecay: 0.02,
+                    octaves: 2,
+                    envelope: {
+                        attack: 0.001,
+                        decay: 0.1,
+                        sustain: 0.0,
+                        release: 0.1
+                    }
+                }).toDestination();
+
+                this.gameOverSynth = new Tone.MembraneSynth({
+                    pitchDecay: 0.05,
+                    octaves: 8,
+                    envelope: {
+                        attack: 0.001,
+                        decay: 0.4,
+                        sustain: 0.01,
+                        release: 1.4,
+                        attackCurve: "exponential"
+                    }
+                }).toDestination();
+                this.pauseSynth = new Tone.Synth({
+                    oscillator: { type: "sine" },
+                    envelope: {
+                        attack: 0.001,
+                        decay: 0.1,
+                        sustain: 0.0,
+                        release: 0.1
+                    }
+                }).toDestination();
+                // Direction change sound
+                this.dirChangeSynth = new Tone.Synth({
+                    oscillator: { type: "triangle" },
+                    envelope: {
+                        attack: 0.001,
+                        decay: 0.05,
+                        sustain: 0.0,
+                        release: 0.05
+                    }
+                }).toDestination();
+
+
+                // Background music (simple retro melody)
+                this.bgmSynth = new Tone.Synth({
+                    oscillator: { type: "square" },
+                    envelope: {
+                        attack: 0.005,
+                        decay: 0.1,
+                        sustain: 0.2,
+                        release: 0.5
+                    }
+                }).toDestination();
+
+                this.bgmSequence = new Tone.Sequence((time, note) => {
+                    this.bgmSynth.triggerAttackRelease(note, "8n", time);
+                }, ["C4", "E4", "G4", "C5", "G4", "E4"], "4n"); // Simple arpeggio
+                this.bgmSequence.loop = true;
+                this.bgmSequence.bpm = 120; // Set BPM
+
+                this.startGame();
+            }
+
+            // Function to start audio context and BGM
+            Game.prototype.startAudio = function() {
+                if (!this.audioContextStarted) {
+                    Tone.start(); // Start Tone.js audio context
+                    this.bgmSequence.start(0); // Start background music
+                    this.audioContextStarted = true;
+                }
+            };
+
+            Game.prototype.startGame = function() {
+                var _x, _y;
+                _x = Math.floor(this.width / 2);
+                _y = Math.floor(this.height / 2);
+                this.snake = [
+                    [_x, _y],
+                    [--_x, _y],
+                    [--_x, _y],
+                    [--_x, _y]
+                ];
+                this.dir = "";
+                this.newdir = "right";
+                this.score = 0;
+                this.gstarted = true;
+                this.gpaused = false;
+                this.food = [];
+                this.last_dt = 0.00;
+                this.delay = 0.08; // Snake speed (lower is faster)
+                this.noshow = true;
+                this.gpaused = true; // Start paused
+                this.tx = this.width * this.pixelsize;
+                this.ty = this.height * this.pixelsize;
+                this.genFood();
+                this.updateScoreDisplay();
+                return this.showIntro();
+            };
+
+            Game.prototype.genFood = function() {
+                var x, y;
+                while (true) {
+                    x = Math.floor(Math.random() * (this.width - 1));
+                    y = Math.floor(Math.random() * (this.height - 1));
+                    if (!this.testCollision(x, y)) break;
+                }
+                this.food = [x, y];
+            };
+
+            Game.prototype.drawFood = function() {
+                const foodX = this.food[0] * this.pixelsize;
+                const foodY = this.food[1] * this.pixelsize;
+                const ps = this.pixelsize;
+
+                // Draw a simple, bright yellow square for the food
+                atom.context.fillStyle = "#FFD166"; // Bright Yellow/Orange
+                atom.context.fillRect(foodX, foodY, ps, ps);
+
+                // Add a subtle border for definition
+                atom.context.strokeStyle = "#FFAA00"; // Darker orange
+                atom.context.lineWidth = 1;
+                atom.context.strokeRect(foodX, foodY, ps, ps);
+            };
+
+            Game.prototype.drawSnake = function() {
+                const ps = this.pixelsize;
+
+                // Draw snake body segments
+                atom.context.fillStyle = "#80ED99"; // Vibrant Cyan/Teal for body
+                atom.context.strokeStyle = "#55AA77"; // Slightly darker border for body
+                atom.context.lineWidth = 1;
+
+                for (let i = 0; i < this.snake.length; i++) {
+                    const x = this.snake[i][0];
+                    const y = this.snake[i][1];
+                    atom.context.fillRect(x * ps, y * ps, ps, ps);
+                    atom.context.strokeRect(x * ps, y * ps, ps, ps);
+                }
+
+                // Draw snake head with a distinct, brighter color
+                atom.context.fillStyle = "#C7F9CC"; // Lighter Cyan for head
+                atom.context.strokeStyle = "#80ED99"; // Border same as body fill
+                atom.context.lineWidth = 2; // Thicker border for head
+
+                const headX = this.snake[0][0];
+                const headY = this.snake[0][1];
+                atom.context.fillRect(headX * ps, headY * ps, ps, ps);
+                atom.context.strokeRect(headX * ps, headY * ps, ps, ps);
+            };
+
+            // Draw a subtle grid on the canvas
+            Game.prototype.drawGrid = function() {
+                atom.context.strokeStyle = "#12121E"; // Very subtle dark blue for grid lines
+                atom.context.lineWidth = 0.5;
+
+                // Vertical lines
+                for (let x = 0; x <= this.width; x++) {
+                    atom.context.beginPath();
+                    atom.context.moveTo(x * this.pixelsize, 0);
+                    atom.context.lineTo(x * this.pixelsize, this.ty);
+                    atom.context.stroke();
+                }
+
+                // Horizontal lines
+                for (let y = 0; y <= this.height; y++) {
+                    atom.context.beginPath();
+                    atom.context.moveTo(0, y * this.pixelsize);
+                    atom.context.lineTo(this.tx, y * this.pixelsize);
+                    atom.context.stroke();
+                }
+            };
+
+            Game.prototype.testCollision = function(x, y) {
+                if (x < 0 || x > this.width - 1) return true;
+                if (y < 0 || y > this.height - 1) return true;
+                for (let i = 0; i < this.snake.length; i++) {
+                    if (x === this.snake[i][0] && y === this.snake[i][1]) return true;
+                }
+                return false;
+            };
+
+            Game.prototype.updateScoreDisplay = function() {
+                this.scoreDisplay.innerText = "Score: " + this.score;
+            };
+
+            Game.prototype.showOverlay = function(title, messages) {
+                let overlay = document.createElement('div');
+                overlay.className = 'game-text';
+                overlay.innerHTML = `<h1>${title}</h1>` +
+                                    messages.map(msg => `<p>${msg}</p>`).join('');
+                document.getElementById('game-container').appendChild(overlay);
+                this.currentOverlay = overlay;
+            };
+
+            Game.prototype.hideOverlay = function() {
+                if (this.currentOverlay) {
+                    this.currentOverlay.remove();
+                    this.currentOverlay = null;
+                }
+            };
+
+            Game.prototype.endGame = function() {
+                this.gstarted = false;
+                this.noshow = true;
+                this.gameOverSynth.triggerAttackRelease("C2", "2n"); // Play game over sound
+                this.bgmSequence.stop(); // Stop background music
+                this.showOverlay("Game Over", [
+                    "Score: " + this.score,
+                    "Press SPACE to play again!"
+                ]);
+            };
+
+            Game.prototype.togglePause = function() {
+                if (!this.gpaused) {
+                    this.noshow = true;
+                    this.gpaused = true;
+                    this.pauseSynth.triggerAttackRelease("G4", "16n"); // Play pause sound
+                    this.bgmSequence.stop(); // Pause background music
+                    this.showOverlay("Paused", ["Press SPACE to resume!"]);
+                } else {
+                    this.gpaused = false;
+                    this.noshow = false;
+                    this.hideOverlay();
+                    this.pauseSynth.triggerAttackRelease("C5", "16n"); // Play unpause sound
+                    this.bgmSequence.start(); // Resume background music
+                }
+            };
+
+            Game.prototype.showIntro = function() {
+                this.showOverlay("Classic Snake", [
+                    "Use arrow keys to change direction.",
+                    "Press SPACE to start/pause.",
+                    "Pro-tip: Press SPACE now!"
+                ]);
+            };
+
+            Game.prototype.update = function(dt) {
+                // Check keyboard input
+                const oldNewDir = this.newdir; // Store current newdir to check for changes
+
+                if (atom.input.pressed('move_left')) {
+                    if (this.dir !== "right") this.newdir = "left";
+                } else if (atom.input.pressed('move_up')) {
+                    if (this.dir !== "down") this.newdir = "up";
+                } else if (atom.input.pressed('move_right')) {
+                    if (this.dir !== "left") this.newdir = "right";
+                } else if (atom.input.pressed('move_down')) {
+                    if (this.dir !== "up") this.newdir = "down";
+                } else if (atom.input.pressed('toggle_pause')) {
+                    // Start audio context on first user interaction (SPACE press)
+                    this.startAudio();
+
+                    if (!this.gstarted) {
+                        this.eraseCanvas();
+                        this.hideOverlay(); // Hide overlay before starting new game
+                        this.startGame();
+                        this.togglePause(); // Unpause the game after starting
+                    } else {
+                        this.togglePause();
+                    }
+                }
+
+                // Play direction change sound if newdir is different and game is running
+                if (this.gstarted && !this.gpaused && this.newdir !== oldNewDir) {
+                    this.dirChangeSynth.triggerAttackRelease("C3", "32n"); // Subtle click sound
+                }
+
+                // Slow down the game
+                if (this.last_dt < this.delay) {
+                    this.last_dt += dt;
+                    return;
+                } else {
+                    this.last_dt = 0.00;
+                }
+
+                // Don't do anything if game is paused or stopped
+                if (!this.gstarted || this.gpaused) return;
+
+                // Update snake position
+                let x = this.snake[0][0];
+                let y = this.snake[0][1];
+                switch (this.newdir) {
+                    case "up":
+                        y--;
+                        break;
+                    case "right":
+                        x++;
+                        break;
+                    case "down":
+                        y++;
+                        break;
+                    case "left":
+                        x--;
+                }
+
+                // Check for collision with self or wall
+                if (this.testCollision(x, y)) {
+                    this.endGame();
+                    return;
+                }
+
+                // Move the snake
+                this.snake.unshift([x, y]);
+                if (x === this.food[0] && y === this.food[1]) {
+                    this.score++;
+                    this.updateScoreDisplay(); // Update score display
+                    this.foodSynth.triggerAttackRelease("C4", "16n", Tone.now(), 0.8); // Play eating sound
+                    this.genFood(); // Generate new food
+                } else {
+                    this.snake.pop(); // Remove tail if no food eaten
+                }
+                this.dir = this.newdir; // Update current direction
+            };
+
+            Game.prototype.eraseCanvas = function() {
+                atom.context.fillStyle = "#1E1E2D"; // Dark blue canvas background
+                atom.context.fillRect(0, 0, this.width * this.pixelsize, this.height * this.pixelsize);
+            };
+
+            Game.prototype.draw = function() {
+                if (!this.noshow) {
+                    this.eraseCanvas();
+                    this.drawGrid(); // Draw grid lines
+                    this.drawFood();
+                    return this.drawSnake();
+                }
+            };
+
+            return Game;
+
+        })(atom.Game);
+
+        // Initialize and run the game
+        // Game(height_cells, width_cells, pixel_size)
+        window.onload = function() {
+            game = new Game(20, 30, 20); // 20 rows, 30 columns, 20px per cell
+            game.run();
+        };
+    </script>
+</body>
+</html>
