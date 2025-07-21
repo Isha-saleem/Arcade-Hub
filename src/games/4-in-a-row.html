@@ -357,7 +357,7 @@
             align-items: center;
         }
 
-        /* Statistics Modal */
+        /* Modals (Statistics and Confirmation) */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -441,6 +441,28 @@
             background: linear-gradient(45deg, #6f42c1, #8e44ad);
         }
 
+        .modal-content .btn-group {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .modal-content .btn-group .btn {
+            width: auto; /* Allow buttons to size based on content */
+            padding: 10px 25px;
+            font-size: 1em;
+            box-shadow: none;
+        }
+
+        .modal-content .btn-group .btn-confirm {
+            background: linear-gradient(45deg, #dc3545, #c82333); /* Red for confirm */
+        }
+        .modal-content .btn-group .btn-cancel {
+            background: linear-gradient(45deg, #6c757d, #5a6268); /* Gray for cancel */
+        }
+
+
         /* Confetti effect */
         .confetti-container {
             position: absolute;
@@ -515,6 +537,9 @@
 
             .stats-list li {
                 font-size: 1.1em;
+            }
+            .modal-content .btn-group {
+                flex-direction: column;
             }
         }
     </style>
@@ -594,9 +619,21 @@
         </div>
     </div>
 
+    <!-- Confirmation Modal -->
+    <div id="confirmation-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="confirmation-message">Are you sure you want to reset the game?</h3>
+            <div class="btn-group">
+                <button class="btn btn-confirm" id="confirm-yes-btn">Yes</button>
+                <button class="btn btn-cancel" id="confirm-no-btn">No</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Confetti Container (for win animation) -->
     <div id="confetti-container" class="confetti-container"></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
 <script>
     // --- Game Configuration ---
     const ROWS = 6;
@@ -625,6 +662,10 @@
     const statsCurrentStreak = document.getElementById('stats-current-streak');
     const statsBestStreak = document.getElementById('stats-best-streak');
     const confettiContainer = document.getElementById('confetti-container');
+    const confirmationModal = document.getElementById('confirmation-modal');
+    const confirmationMessage = document.getElementById('confirmation-message');
+    const confirmYesBtn = document.getElementById('confirm-yes-btn');
+    const confirmNoBtn = document.getElementById('confirm-no-btn');
 
     // --- Game State Variables ---
     let board = [];
@@ -637,6 +678,7 @@
     let floatingDiscColumn = -1;
     let isBotTurn = false;
     let isAnimatingDisc = false; // To prevent clicks during animation
+    let actionToConfirm = null; // Stores the function to call if confirmed
 
     // Statistics
     let stats = {
@@ -646,6 +688,45 @@
         currentStreak: 0,
         bestStreak: 0
     };
+
+    // --- Tone.js Setup for Sound Effects ---
+    const dropSynth = new Tone.Synth({
+        oscillator: { type: "sine" },
+        envelope: { attack: 0.01, decay: 0.1, sustain: 0.0, release: 0.1 }
+    }).toDestination();
+
+    // Changed winSynth to Tone.PolySynth to handle multiple notes
+    const winSynth = new Tone.PolySynth(Tone.Synth, {
+        oscillator: { type: "triangle" },
+        envelope: { attack: 0.05, decay: 0.2, sustain: 0.0, release: 0.3 }
+    }).toDestination();
+
+    const loseSynth = new Tone.Synth({
+        oscillator: { type: "sawtooth" },
+        envelope: { attack: 0.05, decay: 0.3, sustain: 0.0, release: 0.4 }
+    }).toDestination();
+
+    const drawSynth = new Tone.Synth({
+        oscillator: { type: "square" },
+        envelope: { attack: 0.02, decay: 0.15, sustain: 0.0, release: 0.2 }
+    }).toDestination();
+
+    function playDropSound() {
+        dropSynth.triggerAttackRelease("C4", "8n");
+    }
+
+    function playWinSound() {
+        // Now correctly uses an array of notes with PolySynth
+        winSynth.triggerAttackRelease(["C5", "E5", "G5"], "4n");
+    }
+
+    function playLoseSound() {
+        loseSynth.triggerAttackRelease("C3", "2n");
+    }
+
+    function playDrawSound() {
+        drawSynth.triggerAttackRelease("D4", "4n");
+    }
 
     // --- Screen Management ---
     function switchScreen(screenId) {
@@ -820,6 +901,7 @@
 
         if (targetRow !== -1) {
             isAnimatingDisc = true;
+            playDropSound(); // Play disc drop sound
             animateDiscDrop(col, targetRow, currentPlayer, () => {
                 board[targetRow][col] = currentPlayer;
                 drawBoard(); // Redraw board with the disc in place
@@ -880,7 +962,8 @@
             if (gameMode === 'bot' && currentPlayer === 2) {
                 isBotTurn = true;
                 botThinkingMessage.style.display = 'block';
-                setTimeout(makeBotMove, 1000 + Math.random() * 500); // Add slight random delay for bot
+                // Delay bot move to make it seem like it's "thinking"
+                setTimeout(makeBotMove, 1000 + Math.random() * 500);
             }
         }
     }
@@ -945,12 +1028,15 @@
                 message = 'YOU WIN!';
                 resultMessage.style.color = getComputedStyle(document.documentElement).getPropertyValue('--player1-color');
                 triggerConfetti();
+                playWinSound(); // Play win sound
             } else if (winner === 2) {
                 message = (gameMode === 'bot') ? 'YOU LOST!' : 'PLAYER 2 WINS!';
                 resultMessage.style.color = getComputedStyle(document.documentElement).getPropertyValue('--player2-color');
+                playLoseSound(); // Play lose sound
             } else {
                 message = 'IT\'S A DRAW!';
                 resultMessage.style.color = '#fff';
+                playDrawSound(); // Play draw sound
             }
             resultMessage.textContent = message;
             switchScreen('result-screen');
@@ -1015,9 +1101,12 @@
     // --- Minimax AI with enhanced heuristics ---
     function makeBotMove() {
         let bestCol = -1;
-        const depth = (difficulty === 2) ? 7 : (difficulty === 1) ? 4 : 2; // Increase depth for Hard
+        // Increased depth for Medium and Hard difficulties to make the bot more formidable.
+        // Depth 2 for Easy (random-like), Depth 5 for Medium (strategic), Depth 9 for Hard (near-unbeatable).
+        const depth = (difficulty === 2) ? 9 : (difficulty === 1) ? 5 : 2;
+        
         if (difficulty === 0) {
-            // Easy: random move
+            // Easy: random move among valid columns
             const validCols = [];
             for (let c = 0; c < COLS; c++) {
                 if (board[0][c] === 0) validCols.push(c);
@@ -1026,6 +1115,7 @@
                 bestCol = validCols[Math.floor(Math.random() * validCols.length)];
             }
         } else {
+            // For Medium and Hard, use Minimax
             const result = findBestMove(board, depth, -Infinity, Infinity, true);
             bestCol = result.column;
         }
@@ -1033,7 +1123,8 @@
         if (bestCol !== -1 && dropDisc(bestCol)) {
             isBotTurn = false;
         } else {
-            // Fallback: If for some reason bestCol is invalid, find first valid column
+            // Fallback: If for some reason bestCol is invalid (shouldn't happen with correct logic),
+            // find first valid column.
             for(let c = 0; c < COLS; c++) {
                 if (board[0][c] === 0) {
                     dropDisc(c);
@@ -1045,14 +1136,31 @@
         botThinkingMessage.style.display = 'none';
     }
 
+    /**
+     * Minimax algorithm with Alpha-Beta Pruning.
+     * @param {Array<Array<number>>} currentBoard - The current state of the game board.
+     * @param {number} depth - The current search depth.
+     * @param {number} alpha - Alpha value for pruning.
+     * @param {number} beta - Beta value for pruning.
+     * @param {boolean} isMaximizing - True if it's the maximizing player's turn (bot), false for minimizing (human).
+     * @returns {{score: number, column: number}} The best score and corresponding column.
+     */
     function findBestMove(currentBoard, depth, alpha, beta, isMaximizing) {
         const botPlayer = 2;
         const humanPlayer = 1;
 
-        // Check terminal states
-        if (depth === 0 || checkWinOnBoard(currentBoard, botPlayer) || checkWinOnBoard(currentBoard, humanPlayer) || checkDrawOnBoard(currentBoard)) {
-            const score = evaluateBoard(currentBoard);
-            return { score, column: -1 };
+        // Check terminal states (win/loss/draw or max depth reached)
+        if (checkWinOnBoard(currentBoard, botPlayer)) {
+            return { score: 1000000 + depth, column: -1 }; // Bot wins, prioritize shallower wins
+        }
+        if (checkWinOnBoard(currentBoard, humanPlayer)) {
+            return { score: -1000000 - depth, column: -1 }; // Human wins, prioritize deeper losses for bot
+        }
+        if (checkDrawOnBoard(currentBoard)) {
+            return { score: 0, column: -1 }; // Draw
+        }
+        if (depth === 0) {
+            return { score: evaluateBoard(currentBoard), column: -1 }; // Max depth reached, evaluate board
         }
 
         // Generate valid moves
@@ -1061,45 +1169,61 @@
             if (currentBoard[0][c] === 0) validCols.push(c);
         }
 
-        // Move ordering: center columns first
-        validCols.sort((a, b) => Math.abs(b - Math.floor(COLS / 2)) - Math.abs(a - Math.floor(COLS / 2)));
+        // Move ordering: prioritize center columns, then check for immediate threats/wins
+        validCols.sort((a, b) => {
+            const centerCol = Math.floor(COLS / 2);
+            const distA = Math.abs(a - centerCol);
+            const distB = Math.abs(b - centerCol);
+            return distA - distB; // Closer to center first
+        });
 
-        let bestCol = validCols[0];
+        let bestCol = validCols[0]; // Initialize with a valid column
+
         if (isMaximizing) {
             let maxEval = -Infinity;
             for (let c of validCols) {
                 const row = getAvailableRow(currentBoard, c);
-                if (row === -1) continue;
+                if (row === -1) continue; // Column is full
+
                 const newBoard = cloneBoard(currentBoard);
                 newBoard[row][c] = botPlayer;
                 const eval = findBestMove(newBoard, depth - 1, alpha, beta, false).score;
+
                 if (eval > maxEval) {
                     maxEval = eval;
                     bestCol = c;
                 }
                 alpha = Math.max(alpha, eval);
-                if (beta <= alpha) break; // prune
+                if (beta <= alpha) break; // Alpha-beta pruning
             }
             return { score: maxEval, column: bestCol };
-        } else {
+        } else { // Minimizing player (human)
             let minEval = Infinity;
             for (let c of validCols) {
                 const row = getAvailableRow(currentBoard, c);
-                if (row === -1) continue;
+                if (row === -1) continue; // Column is full
+
                 const newBoard = cloneBoard(currentBoard);
                 newBoard[row][c] = humanPlayer;
                 const eval = findBestMove(newBoard, depth - 1, alpha, beta, true).score;
+
                 if (eval < minEval) {
                     minEval = eval;
                     bestCol = c;
                 }
                 beta = Math.min(beta, eval);
-                if (beta <= alpha) break; // prune
+                if (beta <= alpha) break; // Alpha-beta pruning
             }
             return { score: minEval, column: bestCol };
         }
     }
 
+    /**
+     * Finds the lowest available row in a given column.
+     * @param {Array<Array<number>>} bd - The board.
+     * @param {number} col - The column to check.
+     * @returns {number} The row index, or -1 if the column is full.
+     */
     function getAvailableRow(bd, col) {
         for (let r = ROWS - 1; r >= 0; r--) {
             if (bd[r][col] === 0) return r;
@@ -1107,84 +1231,119 @@
         return -1;
     }
 
+    /**
+     * Creates a deep copy of the board.
+     * @param {Array<Array<number>>} bd - The board to clone.
+     * @returns {Array<Array<number>>} A new board array.
+     */
     function cloneBoard(bd) {
         return bd.map(row => [...row]);
     }
 
-    // Evaluation heuristic
+    /**
+     * Evaluates the current board state for the AI.
+     * Positive scores favor the bot (Player 2), negative scores favor the human (Player 1).
+     * @param {Array<Array<number>>} bd - The board to evaluate.
+     * @returns {number} The calculated score.
+     */
     function evaluateBoard(bd) {
-        // Assign scores to potential lines
         let score = 0;
-        score += scoreCenter(bd);
-        score += scorePotential(bd, 2); // AI
-        score -= scorePotential(bd, 1); // Opponent
+        const botPlayer = 2;
+        const humanPlayer = 1;
+
+        // Prioritize center control
+        score += scoreCenter(bd, botPlayer) * 3;
+        score -= scoreCenter(bd, humanPlayer) * 2; // Less penalty for opponent's center
+
+        // Evaluate potential lines for both players
+        score += scorePotential(bd, botPlayer); // AI's offensive potential
+        score -= scorePotential(bd, humanPlayer); // Human's offensive potential (AI wants to minimize this)
+
         return score;
     }
 
-    function scoreCenter(bd) {
+    /**
+     * Scores how many of a player's discs are in the center column.
+     * @param {Array<Array<number>>} bd - The board.
+     * @param {number} player - The player ID (1 or 2).
+     * @returns {number} The count of player's discs in the center column.
+     */
+    function scoreCenter(bd, player) {
         const centerCol = Math.floor(COLS / 2);
         let count = 0;
         for (let r = 0; r < ROWS; r++) {
-            if (bd[r][centerCol] === 2) count++;
+            if (bd[r][centerCol] === player) count++;
         }
-        return count * 3; // bonus for controlling center
+        return count;
     }
 
+    /**
+     * Scores potential winning lines for a given player.
+     * This is the core heuristic for the AI's "intelligence."
+     * @param {Array<Array<number>>} bd - The board.
+     * @param {number} player - The player ID (1 or 2).
+     * @returns {number} The total score from potential lines.
+     */
     function scorePotential(bd, player) {
         const opponent = (player === 2) ? 1 : 2;
         let totalScore = 0;
 
-        // Horizontal
+        // Define all possible 4-disc windows to check
+        const windows = [];
+
+        // Horizontal windows
         for (let r = 0; r < ROWS; r++) {
             for (let c = 0; c <= COLS - 4; c++) {
-                const window = [bd[r][c], bd[r][c+1], bd[r][c+2], bd[r][c+3]];
-                totalScore += scoreWindow(window, player);
+                windows.push([bd[r][c], bd[r][c+1], bd[r][c+2], bd[r][c+3]]);
             }
         }
-        // Vertical
+        // Vertical windows
         for (let c = 0; c < COLS; c++) {
             for (let r = 0; r <= ROWS - 4; r++) {
-                const window = [bd[r][c], bd[r+1][c], bd[r+2][c], bd[r+3][c]];
-                totalScore += scoreWindow(window, player);
+                windows.push([bd[r][c], bd[r+1][c], bd[r+2][c], bd[r+3][c]]);
             }
         }
-        // Diagonal down
+        // Diagonal (positive slope) windows
         for (let r = 0; r <= ROWS - 4; r++) {
             for (let c = 0; c <= COLS - 4; c++) {
-                const window = [bd[r][c], bd[r+1][c+1], bd[r+2][c+2], bd[r+3][c+3]];
-                totalScore += scoreWindow(window, player);
+                windows.push([bd[r][c], bd[r+1][c+1], bd[r+2][c+2], bd[r+3][c+3]]);
             }
         }
-        // Diagonal up
+        // Diagonal (negative slope) windows
         for (let r = 3; r < ROWS; r++) {
             for (let c = 0; c <= COLS - 4; c++) {
-                const window = [bd[r][c], bd[r-1][c+1], bd[r-2][c+2], bd[r-3][c+3]];
-                totalScore += scoreWindow(window, player);
+                windows.push([bd[r][c], bd[r-1][c+1], bd[r-2][c+2], bd[r-3][c+3]]);
+            }
+        }
+
+        // Score each window
+        for (const window of windows) {
+            const countPlayer = window.filter(c => c === player).length;
+            const countOpponent = window.filter(c => c === opponent).length;
+            const countEmpty = window.filter(c => c === 0).length;
+
+            if (countPlayer === 4) {
+                totalScore += 100000; // Immediate win (should be caught by terminal state, but good as fallback)
+            } else if (countPlayer === 3 && countEmpty === 1) {
+                totalScore += 1000; // Strong threat: 3 in a row with 1 empty (very high value)
+            } else if (countPlayer === 2 && countEmpty === 2) {
+                totalScore += 100; // Moderate threat: 2 in a row with 2 empty
+            } else if (countOpponent === 3 && countEmpty === 1) {
+                totalScore -= 900; // Block opponent's immediate win (high priority negative score)
+            } else if (countOpponent === 2 && countEmpty === 2) {
+                totalScore -= 90; // Block opponent's potential threat
             }
         }
         return totalScore;
     }
 
-    function scoreWindow(window, player) {
-        const opponent = (player === 2) ? 1 : 2;
-        const countPlayer = window.filter(c => c === player).length;
-        const countOpponent = window.filter(c => c === opponent).length;
-        const countEmpty = window.filter(c => c === 0).length;
-
-        if (countPlayer === 4) {
-            return 100000; // Winning move
-        } else if (countPlayer === 3 && countEmpty === 1) {
-            return 100; // Three in a row with one empty slot (strong threat)
-        } else if (countPlayer === 2 && countEmpty === 2) {
-            return 10; // Two in a row with two empty slots (potential)
-        } else if (countOpponent === 3 && countEmpty === 1) {
-            return -90; // Block opponent's winning move (high priority negative score)
-        } else if (countOpponent === 2 && countEmpty === 2) {
-            return -9; // Block opponent's potential two in a row
-        }
-        return 0; // No significant pattern
-    }
-
+    /**
+     * Checks if a player has won on a given board.
+     * This is a simplified check for terminal states within minimax, not for drawing winning line.
+     * @param {Array<Array<number>>} bd - The board to check.
+     * @param {number} player - The player ID (1 or 2).
+     * @returns {boolean} True if the player has won, false otherwise.
+     */
     function checkWinOnBoard(bd, player) {
         // Check horizontal
         for (let r = 0; r < ROWS; r++) {
@@ -1221,11 +1380,16 @@
         return false;
     }
 
+    /**
+     * Checks if the board is in a draw state.
+     * @param {Array<Array<number>>} bd - The board to check.
+     * @returns {boolean} True if it's a draw, false otherwise.
+     */
     function checkDrawOnBoard(bd) {
         for (let c = 0; c < COLS; c++) {
-            if (bd[0][c] === 0) return false;
+            if (bd[0][c] === 0) return false; // If any top cell is empty, not a draw
         }
-        return true;
+        return true; // All cells full, no winner
     }
 
     // --- Event Handlers ---
@@ -1284,6 +1448,17 @@
         statsModal.classList.remove('active');
     }
 
+    function showConfirmation(message, onConfirm) {
+        confirmationMessage.textContent = message;
+        actionToConfirm = onConfirm;
+        confirmationModal.classList.add('active');
+    }
+
+    function hideConfirmation() {
+        confirmationModal.classList.remove('active');
+        actionToConfirm = null;
+    }
+
     // --- Event Listeners ---
     document.getElementById('play-bot-btn').addEventListener('click', () => {
         gameMode = 'bot';
@@ -1298,10 +1473,19 @@
     });
 
     document.getElementById('back-to-home-from-game').addEventListener('click', () => {
-        switchScreen('home-screen');
+        showConfirmation('Are you sure you want to go back to the home screen? Your current game will be lost.', () => {
+            switchScreen('home-screen');
+            initGame(); // Reset game state when returning home
+            hideConfirmation();
+        });
     });
 
-    document.getElementById('reset-game-btn').addEventListener('click', initGame);
+    document.getElementById('reset-game-btn').addEventListener('click', () => {
+        showConfirmation('Are you sure you want to reset the current game?', () => {
+            initGame();
+            hideConfirmation();
+        });
+    });
 
     document.getElementById('play-again-btn').addEventListener('click', () => {
         initGame();
@@ -1310,11 +1494,21 @@
 
     document.getElementById('back-to-home-from-result').addEventListener('click', () => {
         switchScreen('home-screen');
+        initGame(); // Reset game state when returning home
     });
 
     document.getElementById('stats-btn').addEventListener('click', showStatsModal);
     document.getElementById('stats-btn-result').addEventListener('click', showStatsModal);
     document.getElementById('stats-ok-btn').addEventListener('click', hideStatsModal);
+
+    confirmYesBtn.addEventListener('click', () => {
+        if (actionToConfirm) {
+            actionToConfirm();
+        }
+    });
+
+    confirmNoBtn.addEventListener('click', hideConfirmation);
+
 
     gameCanvas.addEventListener('click', handleCanvasClick);
     gameCanvas.addEventListener('mousemove', handleCanvasMouseMove);
