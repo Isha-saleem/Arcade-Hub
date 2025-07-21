@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sound Memory Game</title>
+    <!-- Tailwind CSS CDN (added for utility classes) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts - Inter (added as per previous instructions) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif; /* Changed from Segoe UI to Inter */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #0F172A; /* Consistent with WaveCore dark blue */
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+            /* overflow: hidden; Prevent scrollbars if content slightly overflows */
+        }
+
+        /* Wave-themed background animation for the container */
+        .game-container {
+            background: linear-gradient(135deg, #1a2a4a, #2a1a2a, #1a2a4a); /* Dark blue-purple gradient */
+            background-size: 400% 400%;
+            animation: subtle-gradient-shift 30s ease infinite alternate; /* Subtle animation */
+            padding: 40px;
+            border-radius: 10px;
+            text-align: center;
+            width: 90%;
+            max-width: 400px; /* Slightly smaller to match mobile feel */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative; /* For absolute positioning of tap message and level display */
+            min-height: 500px; /* Ensure enough space for content */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Added container shadow */
+            border: 1px solid #334155; /* Added border for consistency */
+        }
+
+        /* Keyframes for subtle gradient shift */
+        @keyframes subtle-gradient-shift {
+            0% { background-position: 0% 0%; }
+            100% { background-position: 100% 100%; }
+        }
+
+        .game-title {
+            font-size: 3.5em; /* Larger font size */
+            font-weight: 900; /* Bolder */
+            margin-bottom: 20px; /* Reduced margin to bring remarks closer */
+            text-transform: uppercase;
+            letter-spacing: 3px; /* Slightly more spaced out */
+            /* New shadowy text styling - simplified for clarity and WaveCore consistency */
+            background-image: linear-gradient(to right, #FF69B4, #BA55D3); /* Pink to Orchid gradient */
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text; /* Standard property */
+            color: #FF69B4; /* Fallback color */
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); /* Simpler, clearer shadow */
+        }
+
+        .message-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7); /* Semi-transparent overlay */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10; /* Above game elements */
+            cursor: pointer;
+            border-radius: 10px;
+            transition: opacity 0.3s ease;
+        }
+
+        .message-overlay.hidden {
+            opacity: 0;
+            pointer-events: none; /* Allow clicks through when hidden */
+        }
+
+        .tap-to-start-text {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 20px;
+            text-shadow: 0 0 8px rgba(255,255,255,0.7); /* Subtle glow */
+        }
+
+        .instructions-text {
+            font-size: 1em;
+            color: #ccc;
+            line-height: 1.5;
+            max-width: 80%;
+        }
+
+        .buttons-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr); /* 2 columns */
+            gap: 20px; /* Increased gap */
+            margin-top: 20px; /* Adjusted margin after remarks */
+            padding: 10px;
+            width: 100%; /* Take full width of container */
+            max-width: 300px; /* Limit grid size for better aesthetics */
+            aspect-ratio: 1 / 1; /* Keep grid square */
+        }
+
+        .sound-button {
+            width: 100%; /* Fill grid cell */
+            height: 100%; /* Fill grid cell */
+            border-radius: 15px; /* More rounded corners */
+            border: none; /* No border */
+            font-size: 0; /* Hide number, only color matters */
+            cursor: pointer;
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.5), /* Stronger bottom shadow */
+                        0 3px 6px rgba(0, 0, 0, 0.3); /* Subtle top shadow */
+            position: relative; /* For active state overlay */
+            overflow: hidden; /* Ensure shadow is clipped if needed */
+        }
+
+        /* Button Colors */
+        .sound-button[data-note="0"] { background-color: #B22222; } /* Firebrick Red */
+        .sound-button[data-note="1"] { background-color: #DAA520; } /* Goldenrod Yellow */
+        .sound-button[data-note="2"] { background-color: #4169E1; } /* Royal Blue */
+        .sound-button[data-note="3"] { background-color: #228B22; } /* Forest Green */
+
+        .sound-button:active,
+        .sound-button.active {
+            transform: translateY(4px); /* Press down effect */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5), /* Reduced shadow when pressed */
+                        0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .score-display {
+            margin-top: 30px;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #eee;
+        }
+
+        .game-status-message {
+            margin-top: 15px; /* Adjusted margin to be after title */
+            margin-bottom: 20px; /* Space before buttons */
+            font-size: 1.1em;
+            min-height: 1.5em; /* Prevent layout shift */
+            color: #fff;
+        }
+
+        .level-display {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            font-size: 1em;
+            font-weight: bold;
+            color: #eee;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 480px) {
+            .game-title {
+                font-size: 2.8em;
+            }
+            .tap-to-start-text {
+                font-size: 1.5em;
+            }
+            .instructions-text {
+                font-size: 0.9em;
+            }
+            .buttons-grid {
+                gap: 15px;
+            }
+            .level-display {
+                font-size: 0.9em;
+                bottom: 15px;
+                left: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container" id="game-container">
+        <h1 class="game-title">Sound Memory</h1>
+        
+        <div class="message-overlay" id="message-overlay">
+            <p class="tap-to-start-text">Tap to Start!</p>
+            <p class="instructions-text">
+                Follow the pattern set by the computer.<br>
+                Tap the same boxes in the same order.
+            </p>
+        </div>
+
+        <!-- Game status message now after the title -->
+        <p class="game-status-message" id="game-status-message"></p>
+
+        <div class="buttons-grid" id="buttons-grid">
+            <button class="sound-button" data-note="0"></button>
+            <button class="sound-button" data-note="1"></button>
+            <button class="sound-button" data-note="2"></button>
+            <button class="sound-button" data-note="3"></button>
+        </div>
+
+        <p class="score-display">Score: <span id="current-score">0</span></p>
+        
+        <!-- Level display in bottom-left corner -->
+        <div class="level-display">Level: <span id="current-level">0</span></div>
+    </div>
+
+    <script>
+        // Web Audio API context
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        // DOM Elements
+        const gameContainer = document.getElementById('game-container');
+        const messageOverlay = document.getElementById('message-overlay');
+        const gameStatusMessage = document.getElementById('game-status-message');
+        const currentScoreElement = document.getElementById('current-score');
+        const currentLevelElement = document.getElementById('current-level'); // New element
+        const buttonsGrid = document.getElementById('buttons-grid');
+        const soundButtons = document.querySelectorAll('.sound-button');
+
+        // Game State Variables
+        let gameSequence = [];
+        let playerSequence = [];
+        let score = 0;
+        let isPlayerTurn = false;
+        let canClick = false; // Prevents clicking during sequence playback
+        let currentLevel = 0; // Start at level 0, increments to 1 for first round
+
+        // Frequencies for the notes (you can adjust these)
+        const noteFrequencies = [
+            262, // C4 - Red
+            294, // D4 - Yellow
+            330, // E4 - Blue
+            349  // F4 - Green
+        ];
+
+        // --- Sound Functions ---
+        function playTone(frequency, duration) {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.type = 'sine'; // Can be 'sine', 'square', 'sawtooth', 'triangle'
+            oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+
+            gainNode.gain.setValueAtTime(1, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration / 1000); // Fade out
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duration / 1000); // Duration in seconds
+        }
+
+        function highlightButton(buttonElement) {
+            buttonElement.classList.add('active');
+            setTimeout(() => {
+                buttonElement.classList.remove('active');
+            }, 200); // How long the highlight lasts
+        }
+
+        async function playSequence() {
+            canClick = false; // Disable clicks during playback
+            gameStatusMessage.textContent = "Listen carefully...";
+            
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Short pause before starting sequence
+
+            for (let i = 0; i < gameSequence.length; i++) {
+                const noteIndex = gameSequence[i];
+                const button = soundButtons[noteIndex];
+                
+                highlightButton(button);
+                playTone(noteFrequencies[noteIndex], 300); // Play for 300ms
+                
+                await new Promise(resolve => setTimeout(resolve, 400)); // Pause between notes
+            }
+
+            gameStatusMessage.textContent = "Now your turn! Tap the sequence.";
+            canClick = true; // Enable clicks after playback
+            isPlayerTurn = true;
+        }
+
+        // --- Game Logic ---
+        function generateNextInSequence() {
+            const randomIndex = Math.floor(Math.random() * noteFrequencies.length);
+            gameSequence.push(randomIndex);
+        }
+
+        function startGame() {
+            messageOverlay.classList.add('hidden'); // Hide the "Tap to Start" overlay
+            score = 0;
+            currentLevel = 0; // Reset level for new game
+            gameSequence = [];
+            playerSequence = [];
+            currentScoreElement.textContent = score;
+            currentLevelElement.textContent = currentLevel; // Update level display
+            gameStatusMessage.textContent = ""; // Clear initial status message
+            
+            nextRound(); // Start the first round
+        }
+
+        function nextRound() {
+            currentLevel++;
+            currentLevelElement.textContent = currentLevel; // Update level display
+            gameStatusMessage.textContent = `Level ${currentLevel}`;
+            playerSequence = []; // Reset player sequence for the new round
+            generateNextInSequence();
+            setTimeout(playSequence, 1500); // Give a moment before playing new sequence
+        }
+
+        function handlePlayerClick(event) {
+            if (!isPlayerTurn || !canClick) return;
+
+            const clickedButton = event.target.closest('.sound-button');
+            if (!clickedButton) return;
+
+            const noteIndex = parseInt(clickedButton.dataset.note);
+            
+            highlightButton(clickedButton);
+            playTone(noteFrequencies[noteIndex], 200); // Shorter beep for player feedback
+
+            playerSequence.push(noteIndex);
+
+            // Check if player's input matches the game sequence so far
+            if (playerSequence[playerSequence.length - 1] !== gameSequence[playerSequence.length - 1]) {
+                gameOver();
+                return;
+            }
+
+            // If player has completed the current sequence
+            if (playerSequence.length === gameSequence.length) {
+                score++;
+                currentScoreElement.textContent = score;
+                gameStatusMessage.textContent = "Correct!";
+                isPlayerTurn = false; // Player turn ends
+                setTimeout(nextRound, 1500); // Pause before next round
+            }
+        }
+
+        function gameOver() {
+            gameStatusMessage.textContent = `Game Over! You reached Level ${currentLevel}. Final Score: ${score}`;
+            isPlayerTurn = false;
+            canClick = false;
+            // Play a "game over" sound
+            playTone(100, 500); // Low, long tone
+
+            // Show the "Tap to Start" overlay again after a delay
+            setTimeout(() => {
+                messageOverlay.classList.remove('hidden');
+            }, 2000); 
+        }
+
+        // --- Event Listeners ---
+        // Start game by tapping the overlay
+        messageOverlay.addEventListener('click', startGame);
+
+        buttonsGrid.addEventListener('click', handlePlayerClick);
+
+        // Initial setup
+        currentScoreElement.textContent = score;
+        currentLevelElement.textContent = currentLevel; // Initialize level display
+        gameStatusMessage.textContent = ""; // Clear initial status message
+    </script>
+</body>
+</html>
