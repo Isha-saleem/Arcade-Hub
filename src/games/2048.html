@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2048 Game</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #fbf8f0; /* Lighter background */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            /* overflow: hidden; Prevent scrollbars */
+        }
+
+        .game-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: 500px; /* Limit max width */
+            width: 100%;
+            padding: 10px; /* Padding around the entire game content */
+            box-sizing: border-box;
+        }
+
+        .top-bar {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .top-bar .icon-button {
+            background: none;
+            border: none;
+            font-size: 2em;
+            color: #776e65;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 5px;
+            transition: background-color 0.2s ease;
+        }
+
+        .top-bar .icon-button:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        .title {
+            font-size: 3.5em; /* Slightly larger title */
+            font-weight: 700;
+            color: #776e65;
+            margin: 0;
+            text-align: center;
+        }
+
+        .score-board-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            width: 100%;
+            justify-content: center; /* Center score boxes */
+        }
+
+        .score-container {
+            background-color: #bbada0; /* Match game container color */
+            color: #f9f6f2; /* Light text for score */
+            padding: 10px 20px;
+            border-radius: 10px; /* More rounded */
+            font-size: 1.5em;
+            font-weight: 700;
+            min-width: 120px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            line-height: 1.2;
+        }
+
+        .score-label {
+            font-size: 0.7em;
+            font-weight: 400;
+            opacity: 0.8;
+            color: #f9f6f2; /* Light text for label */
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            gap: 15px; /* Larger gap */
+            background-color: #bbada0; /* Match game container color */
+            border-radius: 10px; /* More rounded */
+            padding: 15px; /* Padding inside the board */
+            position: relative;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3); /* Shadow for the board */
+            width: 100%; /* Ensure it takes full width of its container */
+            aspect-ratio: 1 / 1; /* Keep it square */
+        }
+
+        .grid-cell {
+            width: 100%;
+            padding-bottom: 100%; /* Creates square cells */
+            background-color: #cdc1b4; /* Lighter cell background */
+            border-radius: 8px; /* Rounded corners for cells */
+            position: relative;
+        }
+
+        .tile {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.5em;
+            font-weight: 700;
+            border-radius: 8px; /* Rounded corners for tiles */
+            transition: transform 0.1s ease-in-out, background-color 0.1s ease-in-out, color 0.1s ease-in-out;
+            box-sizing: border-box;
+            color: #776e65; /* Default tile text color */
+            background-color: #eee4da; /* Default tile background */
+            transform: scale(1); /* Initial scale */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Subtle tile shadow */
+        }
+
+        /* Tile colors - Adjusted to match screenshot palette */
+        .tile-2 { background-color: #eee4da; color: #776e65; }
+        .tile-4 { background-color: #ede0c8; color: #776e65; }
+        .tile-8 { background-color: #f2b179; color: #f9f6f2; } /* Orange, white text */
+        .tile-16 { background-color: #f59563; color: #f9f6f2; } /* Darker orange, white text */
+        .tile-32 { background-color: #f67c5f; color: #f9f6f2; } /* Reddish orange, white text */
+        .tile-64 { background-color: #f65e3b; color: #f9f6f2; } /* Red, white text */
+        .tile-128 { background-color: #edcf72; color: #f9f6f2; font-size: 2em; } /* Light yellow, white text */
+        .tile-256 { background-color: #edcc61; color: #f9f6f2; font-size: 2em; } /* Yellow, white text */
+        .tile-512 { background-color: #edc850; color: #f9f6f2; font-size: 2em; } /* Darker yellow, white text */
+        .tile-1024 { background-color: #edc53f; color: #f9f6f2; font-size: 1.5em; } /* Gold, white text */
+        .tile-2048 { background-color: #edc22e; color: #f9f6f2; font-size: 1.5em; } /* Dark gold, white text */
+        .tile-super { background-color: #3c3a32; color: #f9f6f2; font-size: 1.2em; } /* For values > 2048 */
+
+        .game-message {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 10px;
+            z-index: 10;
+            font-size: 2em;
+            font-weight: 700;
+            color: #776e65;
+            text-align: center;
+            display: none; /* Hidden by default */
+        }
+
+        .game-message button {
+            background-color: #8f7a66;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1em;
+            cursor: pointer;
+            margin-top: 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+        }
+
+        .game-message button:hover {
+            background-color: #776e65;
+            transform: translateY(-2px);
+        }
+
+        .footer-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px; /* Space between buttons */
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        .footer-button {
+            background-color: #bbada0; /* Match game container color */
+            border: none;
+            border-radius: 10px; /* More rounded */
+            padding: 15px; /* Larger padding for touch targets */
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-grow: 1; /* Allow buttons to grow */
+            max-width: 80px; /* Max width for buttons */
+        }
+
+        .footer-button:hover {
+            background-color: #a19488; /* Slightly darker on hover */
+            transform: translateY(-2px);
+        }
+
+        .footer-button svg {
+            width: 24px; /* Icon size */
+            height: 24px;
+            fill: #776e65; /* Icon color */
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 480px) {
+            .game-wrapper {
+                padding: 10px;
+            }
+            .title {
+                font-size: 2.8em;
+            }
+            .score-container {
+                font-size: 1.2em;
+                padding: 8px 15px;
+                min-width: unset;
+            }
+            .tile {
+                font-size: 2em;
+            }
+            .tile-128, .tile-256, .tile-512 { font-size: 1.8em; }
+            .tile-1024, .tile-2048 { font-size: 1.3em; }
+            .game-message {
+                font-size: 1.5em;
+            }
+            .top-bar {
+                margin-bottom: 15px;
+            }
+            .score-board-container {
+                flex-wrap: wrap; /* Allow wrapping of score boxes */
+                justify-content: space-around;
+            }
+            .footer-buttons {
+                gap: 10px;
+            }
+            .footer-button {
+                padding: 12px;
+                max-width: 60px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-wrapper">
+        <div class="top-bar">
+            <!-- Hamburger Menu Icon -->
+            <button class="icon-button" aria-label="Menu">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+                    <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                </svg>
+            </button>
+            <h1 class="title">2048</h1>
+            <!-- Refresh Icon -->
+            <button class="icon-button" aria-label="Restart Game" id="refresh-button">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+                    <path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.41 0-7.95 3.59-7.95 8s3.54 8 7.95 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.78 2.37-2.98 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="score-board-container">
+            <div class="score-container">
+                <span class="score-label">SCORE</span>
+                <span id="score">0</span>
+            </div>
+            <div class="score-container">
+                <span class="score-label">BEST</span>
+                <span id="best-score">0</span>
+            </div>
+        </div>
+
+        <div class="game-board" id="game-board">
+            <!-- Grid cells will be generated by JS -->
+            <div class="grid-cell"></div>
+            <div class="grid-cell"></div>
+            <div class="grid-cell"></div>
+            <div class="grid-cell"></div>
+            <div class="grid-cell"></div>
+            <div class="grid-cell"></div>
+            <div class="grid-cell"></div>
+            <div class="grid-cell"></div>
+            <div class="grid-cell"></div>
+            <div class="grid-cell"></div>
+            <div class="grid-cell"></div>
+            <div class="grid-cell"></div>
+            <div class="grid-cell"></div>
+            <div class="grid-cell"></div>
+            <div class="grid-cell"></div>
+            <div class="grid-cell"></div>
+        </div>
+
+        <div class="footer-buttons">
+            <!-- Undo Button -->
+            <button class="footer-button" aria-label="Undo">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+                    <path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.61-3.61c1.39-1.16 3.16-1.89 5.11-1.89 3.73 0 6.84 2.55 7.73 6h2.08c-.9-3.45-4.04-6-7.81-6z"/>
+                </svg>
+            </button>
+            <!-- Shuffle/Randomize (Placeholder) -->
+            <button class="footer-button" aria-label="Shuffle">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+                    <path d="M10.59 9.17c-.75 0-1.41.4-1.76 1H3v2h5.83c.35.6 1.01 1 1.76 1s1.41-.4 1.76-1H21v-2h-8.65c-.35-.6-1.01-1-1.76-1zM3 14h5.83c.35.6 1.01 1 1.76 1s1.41-.4 1.76-1H21v-2h-8.65c-.35-.6-1.01-1-1.76-1s-1.41.4-1.76 1H3v2zm7.59-4c.75 0 1.41.4 1.76 1H21v-2h-8.65c-.35-.6-1.01-1-1.76-1s-1.41.4-1.76 1H3v2h5.83c.35.6 1.01 1 1.76 1z"/>
+                </svg>
+            </button>
+            <!-- Grid/Layout (Placeholder) -->
+            <button class="footer-button" aria-label="Grid Options">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+                    <path d="M4 11h9V4H4v7zm0 9h9v-7H4v7zm10 0h7v-7h-7v7zm0-16v7h7V4h-7z"/>
+                </svg>
+            </button>
+            <!-- Crown/Leaderboard (Placeholder) -->
+            <button class="footer-button" aria-label="Leaderboard">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+                    <path d="M12 11.5c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5-1.5.67-1.5 1.5.67 1.5 1.5 1.5zM18 13.5c-.83 0-1.5-.67-1.5-1.5s-.67-1.5-1.5-1.5-1.5.67-1.5 1.5.67 1.5 1.5 1.5zM6 13.5c-.83 0-1.5-.67-1.5-1.5s-.67-1.5-1.5-1.5-1.5.67-1.5 1.5.67 1.5 1.5 1.5zM21 16H3c-.55 0-1 .45-1 1s.45 1 1 1h18c.55 0 1-.45 1-1s-.45-1-1-1zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="game-message" id="game-message">
+            <p id="game-status-text"></p>
+            <button id="restart-button">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        // Game constants
+        const BOARD_SIZE = 4;
+        const INITIAL_TILES = 2;
+        const TILE_VALUES = [2, 4]; // Possible values for new tiles
+        const BEST_SCORE_KEY = '2048_best_score'; // Key for local storage
+
+        // Game state variables
+        let board = [];
+        let score = 0;
+        let bestScore = 0;
+        let isGameOver = false;
+        let isGameWon = false;
+
+        // DOM elements
+        const gameBoardElement = document.getElementById('game-board');
+        const scoreElement = document.getElementById('score');
+        const bestScoreElement = document.getElementById('best-score');
+        const gameMessageElement = document.getElementById('game-message');
+        const gameStatusTextElement = document.getElementById('game-status-text');
+        const restartButton = document.getElementById('restart-button');
+        const refreshButton = document.getElementById('refresh-button'); // New refresh button
+
+        // Touch event variables
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let touchEndX = 0;
+        let touchEndY = 0;
+        const SWIPE_THRESHOLD = 50; // Minimum pixels for a swipe to register
+
+        /**
+         * Initializes the game board and starts a new game.
+         */
+        function initializeGame() {
+            board = Array(BOARD_SIZE).fill(0).map(() => Array(BOARD_SIZE).fill(0));
+            score = 0;
+            isGameOver = false;
+            isGameWon = false;
+            scoreElement.textContent = score;
+            gameMessageElement.style.display = 'none';
+
+            // Load best score from local storage
+            const storedBestScore = localStorage.getItem(BEST_SCORE_KEY);
+            bestScore = storedBestScore ? parseInt(storedBestScore, 10) : 0;
+            bestScoreElement.textContent = bestScore;
+
+            // Add initial tiles
+            addRandomTile();
+            addRandomTile();
+
+            renderBoard();
+        }
+
+        /**
+         * Adds a new random tile (2 or 4) to an empty spot on the board.
+         */
+        function addRandomTile() {
+            const emptyCells = [];
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    if (board[r][c] === 0) {
+                        emptyCells.push({ r, c });
+                    }
+                }
+            }
+
+            if (emptyCells.length > 0) {
+                const randomCell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+                const newValue = Math.random() < 0.9 ? 2 : 4; // 90% chance of 2, 10% chance of 4
+                board[randomCell.r][randomCell.c] = newValue;
+            }
+        }
+
+        /**
+         * Renders the current state of the board to the HTML.
+         */
+        function renderBoard() {
+            gameBoardElement.innerHTML = ''; // Clear existing tiles
+
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    // Create a grid cell placeholder
+                    const gridCell = document.createElement('div');
+                    gridCell.classList.add('grid-cell');
+                    gameBoardElement.appendChild(gridCell);
+
+                    const tileValue = board[r][c];
+                    if (tileValue !== 0) {
+                        const tile = document.createElement('div');
+                        tile.classList.add('tile');
+                        tile.textContent = tileValue;
+                        // Add class based on tile value for styling
+                        tile.classList.add(`tile-${tileValue > 2048 ? 'super' : tileValue}`);
+
+                        // Position the tile within the grid cell
+                        gridCell.appendChild(tile);
+                    }
+                }
+            }
+            scoreElement.textContent = score;
+            // Update best score display if current score surpasses it
+            if (score > bestScore) {
+                bestScore = score;
+                localStorage.setItem(BEST_SCORE_KEY, bestScore); // Save to local storage
+                bestScoreElement.textContent = bestScore;
+            }
+        }
+
+        /**
+         * Moves tiles in a given direction.
+         * @param {string} direction - 'left', 'right', 'up', 'down'
+         * @returns {boolean} True if any tiles moved or merged, false otherwise.
+         */
+        function moveTiles(direction) {
+            let tilesMoved = false;
+            let newBoard = JSON.parse(JSON.stringify(board)); // Deep copy of the board
+
+            // Helper function to slide and merge a single row/column
+            const slideAndMerge = (line) => {
+                // 1. Remove zeros (compact)
+                let filteredLine = line.filter(val => val !== 0);
+
+                // 2. Merge adjacent identical tiles
+                for (let i = 0; i < filteredLine.length - 1; i++) {
+                    if (filteredLine[i] === filteredLine[i + 1]) {
+                        filteredLine[i] *= 2;
+                        score += filteredLine[i]; // Update score
+                        if (filteredLine[i] === 2048) {
+                            isGameWon = true; // Check for win condition
+                        }
+                        filteredLine.splice(i + 1, 1); // Remove the merged tile
+                        tilesMoved = true; // A merge counts as a move
+                    }
+                }
+
+                // 3. Pad with zeros to original length
+                while (filteredLine.length < BOARD_SIZE) {
+                    filteredLine.push(0);
+                }
+                return filteredLine;
+            };
+
+            if (direction === 'left' || direction === 'right') {
+                for (let r = 0; r < BOARD_SIZE; r++) {
+                    let row = newBoard[r];
+                    let originalRow = [...row]; // Copy for comparison
+
+                    if (direction === 'right') {
+                        row.reverse(); // Reverse for rightward movement
+                    }
+
+                    let newRow = slideAndMerge(row);
+
+                    if (direction === 'right') {
+                        newRow.reverse(); // Reverse back
+                    }
+
+                    if (JSON.stringify(originalRow) !== JSON.stringify(newRow)) {
+                        tilesMoved = true;
+                    }
+                    newBoard[r] = newRow;
+                }
+            } else if (direction === 'up' || direction === 'down') {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    let col = [];
+                    for (let r = 0; r < BOARD_SIZE; r++) {
+                        col.push(newBoard[r][c]);
+                    }
+                    let originalCol = [...col]; // Copy for comparison
+
+                    if (direction === 'down') {
+                        col.reverse(); // Reverse for downward movement
+                    }
+
+                    let newCol = slideAndMerge(col);
+
+                    if (JSON.stringify(originalCol) !== JSON.stringify(newCol)) {
+                        tilesMoved = true;
+                    }
+                    for (let r = 0; r < BOARD_SIZE; r++) {
+                        newBoard[r][c] = newCol[r];
+                    }
+                }
+            }
+
+            // Only update the board if tiles actually moved or merged
+            if (tilesMoved) {
+                board = newBoard;
+                addRandomTile(); // Add a new tile after a successful move
+                renderBoard();
+                checkGameStatus();
+            }
+            return tilesMoved;
+        }
+
+        /**
+         * Checks if the game is over (no more moves possible).
+         * @returns {boolean} True if game is over, false otherwise.
+         */
+        function isMovePossible() {
+            // Check for empty cells
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    if (board[r][c] === 0) {
+                        return true; // There's an empty cell, so a move is possible
+                    }
+                }
+            }
+
+            // Check for adjacent identical tiles (horizontal and vertical)
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    const current = board[r][c];
+                    // Check right
+                    if (c < BOARD_SIZE - 1 && current === board[r][c + 1]) {
+                        return true;
+                    }
+                    // Check down
+                    if (r < BOARD_SIZE - 1 && current === board[r + 1][c]) {
+                        return true;
+                    }
+                }
+            }
+            return false; // No empty cells and no possible merges
+        }
+
+        /**
+         * Checks the current game status (win/lose).
+         */
+        function checkGameStatus() {
+            if (isGameWon) {
+                isGameOver = true;
+                showGameMessage('You Win!');
+            } else if (!isMovePossible()) {
+                isGameOver = true;
+                showGameMessage('Game Over!');
+            }
+        }
+
+        /**
+         * Displays the game over/win message.
+         * @param {string} message - The message to display.
+         */
+        function showGameMessage(message) {
+            gameStatusTextElement.textContent = message;
+            gameMessageElement.style.display = 'flex';
+        }
+
+        /**
+         * Event listener for keyboard input.
+         * @param {KeyboardEvent} event
+         */
+        function handleKeyDown(event) {
+            if (isGameOver) return;
+
+            let moved = false;
+            switch (event.key) {
+                case 'ArrowLeft':
+                    moved = moveTiles('left');
+                    break;
+                case 'ArrowRight':
+                    moved = moveTiles('right');
+                    break;
+                case 'ArrowUp':
+                    moved = moveTiles('up');
+                    break;
+                case 'ArrowDown':
+                    moved = moveTiles('down');
+                    break;
+            }
+            if (moved) {
+                event.preventDefault(); // Prevent default scroll behavior for arrow keys
+            }
+        }
+
+        /**
+         * Event listeners for touch input (swipe gestures).
+         */
+        function handleTouchStart(event) {
+            touchStartX = event.touches[0].clientX;
+            touchStartY = event.touches[0].clientY;
+        }
+
+        function handleTouchMove(event) {
+            // Prevent scrolling while swiping on the game board
+            event.preventDefault();
+        }
+
+        function handleTouchEnd(event) {
+            if (isGameOver) return;
+
+            touchEndX = event.changedTouches[0].clientX;
+            touchEndY = event.changedTouches[0].clientY;
+
+            const dx = touchEndX - touchStartX;
+            const dy = touchEndY - touchStartY;
+
+            if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > SWIPE_THRESHOLD) {
+                // Horizontal swipe
+                if (dx > 0) {
+                    moveTiles('right');
+                } else {
+                    moveTiles('left');
+                }
+            } else if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > SWIPE_THRESHOLD) {
+                // Vertical swipe
+                if (dy > 0) {
+                    moveTiles('down');
+                } else {
+                    moveTiles('up');
+                }
+            }
+        }
+
+        // Event listeners
+        document.addEventListener('keydown', handleKeyDown);
+        restartButton.addEventListener('click', initializeGame);
+        refreshButton.addEventListener('click', initializeGame); // Assign refresh button to restart game
+
+        // Add touch event listeners to the game board
+        gameBoardElement.addEventListener('touchstart', handleTouchStart, { passive: false });
+        gameBoardElement.addEventListener('touchmove', handleTouchMove, { passive: false });
+        gameBoardElement.addEventListener('touchend', handleTouchEnd);
+
+
+        // Initialize the game when the window loads
+        window.onload = initializeGame;
+
+    </script>
+</body>
+</html>
