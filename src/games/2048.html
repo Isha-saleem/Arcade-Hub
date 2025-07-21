@@ -21,16 +21,70 @@
             /* overflow: hidden; Prevent scrollbars */
         }
 
-        .game-wrapper {
+        .intro-page, .game-wrapper {
+            background-color: #bbada0; /* Match game container color */
+            border-radius: 10px;
+            padding: 25px;
+            position: relative;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            max-width: 500px; /* Limit max width for larger screens */
+            width: 100%; /* Make it responsive */
+            box-sizing: border-box;
             display: flex;
             flex-direction: column;
             align-items: center;
-            max-width: 500px; /* Limit max width */
-            width: 100%;
-            padding: 10px; /* Padding around the entire game content */
-            box-sizing: border-box;
+            justify-content: center;
+            text-align: center;
+            color: #776e65;
         }
 
+        .intro-page {
+            min-height: 400px; /* Ensure it has some height */
+        }
+
+        .intro-page h1 {
+            font-size: 4em;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #776e65;
+        }
+
+        .intro-page p {
+            font-size: 1.2em;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .intro-page ul {
+            list-style: none;
+            padding: 0;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .intro-page ul li {
+            margin-bottom: 10px;
+        }
+
+        .start-button {
+            background-color: #8f7a66;
+            color: #fff;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.5em;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+        }
+
+        .start-button:hover {
+            background-color: #776e65;
+            transform: translateY(-3px);
+        }
+
+        /* Existing game styles */
         .top-bar {
             width: 100%;
             display: flex;
@@ -71,7 +125,7 @@
         }
 
         .score-container {
-            background-color: #bbada0; /* Match game container color */
+            background-color: #8f7a66; /* Match game container color */
             color: #f9f6f2; /* Light text for score */
             padding: 10px 20px;
             border-radius: 10px; /* More rounded */
@@ -222,8 +276,26 @@
             fill: #776e65; /* Icon color */
         }
 
+        .footer-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         /* Responsive adjustments */
         @media (max-width: 480px) {
+            .intro-page h1 {
+                font-size: 3em;
+            }
+            .intro-page p {
+                font-size: 1em;
+            }
+            .intro-page ul {
+                font-size: 0.9em;
+            }
+            .start-button {
+                font-size: 1.2em;
+                padding: 12px 25px;
+            }
             .game-wrapper {
                 padding: 10px;
             }
@@ -261,21 +333,28 @@
     </style>
 </head>
 <body>
-    <div class="game-wrapper">
+    <div class="intro-page" id="intro-page">
+        <h1>Welcome to 2048!</h1>
+        <p>Slide, merge, and double your way to 2048.</p>
+        <h2>How to Play:</h2>
+        <ul>
+            <li><strong>Desktop:</strong> Use your keyboard's <strong>Arrow Keys</strong> (Up, Down, Left, Right) to move the tiles.</li>
+            <li><strong>Mobile:</strong> <strong>Swipe</strong> on the game board in the direction you want to move the tiles.</li>
+        </ul>
+        <button class="start-button" id="start-game-button">Start Game</button>
+    </div>
+
+    <div class="game-wrapper" id="game-wrapper" style="display: none;">
         <div class="top-bar">
-            <!-- Hamburger Menu Icon -->
-            <button class="icon-button" aria-label="Menu">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-                    <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
-                </svg>
-            </button>
-            <h1 class="title">2048</h1>
             <!-- Refresh Icon -->
             <button class="icon-button" aria-label="Restart Game" id="refresh-button">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
                     <path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.41 0-7.95 3.59-7.95 8s3.54 8 7.95 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.78 2.37-2.98 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
                 </svg>
             </button>
+            <h1 class="title">2048</h1>
+            <!-- Empty space to balance the refresh button -->
+            <div style="width: 24px; height: 24px;"></div>
         </div>
 
         <div class="score-board-container">
@@ -311,29 +390,12 @@
 
         <div class="footer-buttons">
             <!-- Undo Button -->
-            <button class="footer-button" aria-label="Undo">
+            <button class="footer-button" aria-label="Undo" id="undo-button">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
                     <path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.61-3.61c1.39-1.16 3.16-1.89 5.11-1.89 3.73 0 6.84 2.55 7.73 6h2.08c-.9-3.45-4.04-6-7.81-6z"/>
                 </svg>
             </button>
-            <!-- Shuffle/Randomize (Placeholder) -->
-            <button class="footer-button" aria-label="Shuffle">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-                    <path d="M10.59 9.17c-.75 0-1.41.4-1.76 1H3v2h5.83c.35.6 1.01 1 1.76 1s1.41-.4 1.76-1H21v-2h-8.65c-.35-.6-1.01-1-1.76-1zM3 14h5.83c.35.6 1.01 1 1.76 1s1.41-.4 1.76-1H21v-2h-8.65c-.35-.6-1.01-1-1.76-1s-1.41.4-1.76 1H3v2zm7.59-4c.75 0 1.41.4 1.76 1H21v-2h-8.65c-.35-.6-1.01-1-1.76-1s-1.41.4-1.76 1H3v2h5.83c.35.6 1.01 1 1.76 1z"/>
-                </svg>
-            </button>
-            <!-- Grid/Layout (Placeholder) -->
-            <button class="footer-button" aria-label="Grid Options">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-                    <path d="M4 11h9V4H4v7zm0 9h9v-7H4v7zm10 0h7v-7h-7v7zm0-16v7h7V4h-7z"/>
-                </svg>
-            </button>
-            <!-- Crown/Leaderboard (Placeholder) -->
-            <button class="footer-button" aria-label="Leaderboard">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-                    <path d="M12 11.5c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5-1.5.67-1.5 1.5.67 1.5 1.5 1.5zM18 13.5c-.83 0-1.5-.67-1.5-1.5s-.67-1.5-1.5-1.5-1.5.67-1.5 1.5.67 1.5 1.5 1.5zM6 13.5c-.83 0-1.5-.67-1.5-1.5s-.67-1.5-1.5-1.5-1.5.67-1.5 1.5.67 1.5 1.5 1.5zM21 16H3c-.55 0-1 .45-1 1s.45 1 1 1h18c.55 0 1-.45 1-1s-.45-1-1-1zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
-                </svg>
-            </button>
+            <!-- No other footer buttons -->
         </div>
 
         <div class="game-message" id="game-message">
@@ -348,6 +410,8 @@
         const INITIAL_TILES = 2;
         const TILE_VALUES = [2, 4]; // Possible values for new tiles
         const BEST_SCORE_KEY = '2048_best_score'; // Key for local storage
+        const BOARD_HISTORY_KEY = '2048_board_history'; // Key for board history
+        const SCORE_HISTORY_KEY = '2048_score_history'; // Key for score history
 
         // Game state variables
         let board = [];
@@ -355,15 +419,21 @@
         let bestScore = 0;
         let isGameOver = false;
         let isGameWon = false;
+        let boardHistory = []; // To store previous board states
+        let scoreHistory = []; // To store previous scores
 
         // DOM elements
+        const introPageElement = document.getElementById('intro-page');
+        const startGameButton = document.getElementById('start-game-button');
+        const gameWrapperElement = document.getElementById('game-wrapper'); // Changed from gameContainerElement
         const gameBoardElement = document.getElementById('game-board');
         const scoreElement = document.getElementById('score');
         const bestScoreElement = document.getElementById('best-score');
         const gameMessageElement = document.getElementById('game-message');
         const gameStatusTextElement = document.getElementById('game-status-text');
         const restartButton = document.getElementById('restart-button');
-        const refreshButton = document.getElementById('refresh-button'); // New refresh button
+        const refreshButton = document.getElementById('refresh-button');
+        const undoButton = document.getElementById('undo-button');
 
         // Touch event variables
         let touchStartX = 0;
@@ -380,6 +450,9 @@
             score = 0;
             isGameOver = false;
             isGameWon = false;
+            boardHistory = []; // Clear history on new game
+            scoreHistory = []; // Clear history on new game
+
             scoreElement.textContent = score;
             gameMessageElement.style.display = 'none';
 
@@ -393,6 +466,7 @@
             addRandomTile();
 
             renderBoard();
+            updateUndoButtonState(); // Update undo button state after init
         }
 
         /**
@@ -448,6 +522,8 @@
                 localStorage.setItem(BEST_SCORE_KEY, bestScore); // Save to local storage
                 bestScoreElement.textContent = bestScore;
             }
+            saveGameState(); // Save game state including history after rendering
+            updateUndoButtonState(); // Update undo button state after rendering
         }
 
         /**
@@ -456,8 +532,15 @@
          * @returns {boolean} True if any tiles moved or merged, false otherwise.
          */
         function moveTiles(direction) {
+            if (isGameOver || isGameWon) return false; // Prevent moves if game is over or won
+
             let tilesMoved = false;
             let newBoard = JSON.parse(JSON.stringify(board)); // Deep copy of the board
+            let currentMoveScore = score; // Use a temporary score for this move
+
+            // Save current state before making a move for undo functionality
+            boardHistory.push(JSON.parse(JSON.stringify(board)));
+            scoreHistory.push(score);
 
             // Helper function to slide and merge a single row/column
             const slideAndMerge = (line) => {
@@ -468,7 +551,7 @@
                 for (let i = 0; i < filteredLine.length - 1; i++) {
                     if (filteredLine[i] === filteredLine[i + 1]) {
                         filteredLine[i] *= 2;
-                        score += filteredLine[i]; // Update score
+                        currentMoveScore += filteredLine[i]; // Update temporary score
                         if (filteredLine[i] === 2048) {
                             isGameWon = true; // Check for win condition
                         }
@@ -530,11 +613,41 @@
             // Only update the board if tiles actually moved or merged
             if (tilesMoved) {
                 board = newBoard;
+                score = currentMoveScore; // Update global score
                 addRandomTile(); // Add a new tile after a successful move
                 renderBoard();
                 checkGameStatus();
+            } else {
+                // If no tiles moved, revert history to avoid adding redundant states
+                boardHistory.pop();
+                scoreHistory.pop();
             }
             return tilesMoved;
+        }
+
+        /**
+         * Reverts the game state to the previous move.
+         */
+        function handleUndo() {
+            if (boardHistory.length > 0) {
+                const prevBoard = boardHistory.pop();
+                const prevScore = scoreHistory.pop();
+
+                board = prevBoard;
+                score = prevScore;
+                isGameOver = false; // Always allow playing after undo
+                isGameWon = false;
+                gameMessageElement.style.display = 'none'; // Hide game over message
+
+                renderBoard(); // Re-render the board to reflect the undo
+            }
+        }
+
+        /**
+         * Updates the disabled state of the Undo button.
+         */
+        function updateUndoButtonState() {
+            undoButton.disabled = (boardHistory.length === 0 || isGameOver || isGameWon);
         }
 
         /**
@@ -579,6 +692,7 @@
                 isGameOver = true;
                 showGameMessage('Game Over!');
             }
+            updateUndoButtonState(); // Update undo button state after game status check
         }
 
         /**
@@ -591,11 +705,63 @@
         }
 
         /**
+         * Saves the current game state to local storage.
+         */
+        function saveGameState() {
+            localStorage.setItem(BOARD_HISTORY_KEY, JSON.stringify(boardHistory));
+            localStorage.setItem(SCORE_HISTORY_KEY, JSON.stringify(scoreHistory));
+            localStorage.setItem('2048_current_board', JSON.stringify(board));
+            localStorage.setItem('2048_current_score', score.toString());
+        }
+
+        /**
+         * Loads the game state from local storage.
+         */
+        function loadGameState() {
+            const savedBoard = localStorage.getItem('2048_current_board');
+            const savedScore = localStorage.getItem('2048_current_score');
+            const savedBoardHistory = localStorage.getItem(BOARD_HISTORY_KEY);
+            const savedScoreHistory = localStorage.getItem(SCORE_HISTORY_KEY);
+
+            if (savedBoard && savedScore) {
+                board = JSON.parse(savedBoard);
+                score = parseInt(savedScore, 10);
+            } else {
+                // If no saved game, initialize will be called by startGame
+                return;
+            }
+
+            if (savedBoardHistory && savedScoreHistory) {
+                boardHistory = JSON.parse(savedBoardHistory);
+                scoreHistory = JSON.parse(savedScoreHistory);
+            } else {
+                boardHistory = [];
+                scoreHistory = [];
+            }
+
+            // Load best score (already handled in initializeGame, but ensure it's loaded if resuming)
+            const storedBestScore = localStorage.getItem(BEST_SCORE_KEY);
+            bestScore = storedBestScore ? parseInt(storedBestScore, 10) : 0;
+
+            renderBoard(); // Render the loaded state
+            checkGameStatus(); // Check game status for loaded state
+        }
+
+        /**
+         * Handles starting the game from the intro page.
+         */
+        function handleStartGame() {
+            introPageElement.style.display = 'none';
+            gameWrapperElement.style.display = 'flex'; // Show game wrapper
+            initializeGame();
+        }
+
+        /**
          * Event listener for keyboard input.
          * @param {KeyboardEvent} event
          */
         function handleKeyDown(event) {
-            if (isGameOver) return;
+            if (isGameOver || gameWrapperElement.style.display === 'none') return; // Don't allow moves on intro page
 
             let moved = false;
             switch (event.key) {
@@ -621,17 +787,19 @@
          * Event listeners for touch input (swipe gestures).
          */
         function handleTouchStart(event) {
+            if (isGameOver || gameWrapperElement.style.display === 'none') return; // Don't allow moves on intro page
             touchStartX = event.touches[0].clientX;
             touchStartY = event.touches[0].clientY;
         }
 
         function handleTouchMove(event) {
+            if (gameWrapperElement.style.display === 'none') return; // Prevent scrolling on intro page
             // Prevent scrolling while swiping on the game board
             event.preventDefault();
         }
 
         function handleTouchEnd(event) {
-            if (isGameOver) return;
+            if (isGameOver || gameWrapperElement.style.display === 'none') return; // Don't allow moves on intro page
 
             touchEndX = event.changedTouches[0].clientX;
             touchEndY = event.changedTouches[0].clientY;
@@ -659,7 +827,9 @@
         // Event listeners
         document.addEventListener('keydown', handleKeyDown);
         restartButton.addEventListener('click', initializeGame);
-        refreshButton.addEventListener('click', initializeGame); // Assign refresh button to restart game
+        refreshButton.addEventListener('click', initializeGame);
+        undoButton.addEventListener('click', handleUndo);
+        startGameButton.addEventListener('click', handleStartGame);
 
         // Add touch event listeners to the game board
         gameBoardElement.addEventListener('touchstart', handleTouchStart, { passive: false });
@@ -667,9 +837,15 @@
         gameBoardElement.addEventListener('touchend', handleTouchEnd);
 
 
-        // Initialize the game when the window loads
-        window.onload = initializeGame;
-
+        // On window load, show intro page and hide game wrapper
+        window.onload = () => {
+            introPageElement.style.display = 'flex'; // Show intro page
+            gameWrapperElement.style.display = 'none'; // Hide game wrapper
+            // Load best score so it's ready when the game starts
+            const storedBestScore = localStorage.getItem(BEST_SCORE_KEY);
+            bestScore = storedBestScore ? parseInt(storedBestScore, 10) : 0;
+            // No need to call loadGameState here, as initializeGame will handle it after start button click
+        };
     </script>
 </body>
 </html>
