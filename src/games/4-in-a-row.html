@@ -636,907 +636,215 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
 <script>
     // --- Game Configuration ---
-    const ROWS = 6;
-    const COLS = 7;
-    const CELL_SIZE = 60;
-    const BOARD_PADDING = 20;
-    const DISC_RADIUS = CELL_SIZE / 2 - 5;
-    const ANIMATION_DURATION = 300; // milliseconds for disc drop
+ const ROWS = 6;
+const COLS = 7;
+const board = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+let currentPlayer = "red";
+let isAnimatingDisc = false;
+let vsBot = true;
+let botPlaysAs = "yellow";
+let difficulty = 2; // 0: Easy, 1: Medium, 2: Hard
 
-    // --- DOM Elements ---
-    const homeScreen = document.getElementById('home-screen');
-    const gameScreen = document.getElementById('game-screen');
-    const resultScreen = document.getElementById('result-screen');
-    const gameCanvas = document.getElementById('gameCanvas');
-    const ctx = gameCanvas.getContext('2d');
-    const playerTurnIndicator = document.getElementById('player-turn-indicator');
-    const botThinkingMessage = document.getElementById('bot-thinking-message');
-    const resultMessage = document.getElementById('result-message');
-    const difficultyRange = document.getElementById('difficulty-range');
-    const difficultyLabel = document.getElementById('difficulty-label');
-    const difficultyEmoji = document.getElementById('difficulty-emoji');
-    const statsModal = document.getElementById('stats-modal');
-    const statsWins = document.getElementById('stats-wins');
-    const statsLosses = document.getElementById('stats-losses');
-    const statsWinPercentage = document.getElementById('stats-win-percentage');
-    const statsCurrentStreak = document.getElementById('stats-current-streak');
-    const statsBestStreak = document.getElementById('stats-best-streak');
-    const confettiContainer = document.getElementById('confetti-container');
-    const confirmationModal = document.getElementById('confirmation-modal');
-    const confirmationMessage = document.getElementById('confirmation-message');
-    const confirmYesBtn = document.getElementById('confirm-yes-btn');
-    const confirmNoBtn = document.getElementById('confirm-no-btn');
+const directions = [
+  { dr: 0, dc: 1 },
+  { dr: 1, dc: 0 },
+  { dr: 1, dc: 1 },
+  { dr: 1, dc: -1 }
+];
 
-    // --- Game State Variables ---
-    let board = [];
-    let currentPlayer = 1; // 1 for Player 1 (Red), 2 for Player 2 (Blue)
-    let gameMode = 'bot'; // 'bot' or 'friend'
-    let difficulty = 0; // 0: Easy, 1: Medium, 2: Hard
-    let gameOver = false;
-    let winner = null;
-    let winningLine = null;
-    let floatingDiscColumn = -1;
-    let isBotTurn = false;
-    let isAnimatingDisc = false; // To prevent clicks during animation
-    let actionToConfirm = null; // Stores the function to call if confirmed
+function playDropSound() {
+  const audio = new Audio("drop.mp3");
+  audio.play();
+}
 
-    // Statistics
-    let stats = {
-        wins: 0,
-        losses: 0,
-        draws: 0,
-        currentStreak: 0,
-        bestStreak: 0
-    };
+function isValidMove(col) {
+  return board[0][col] === null;
+}
 
-    // --- Tone.js Setup for Sound Effects ---
-    const dropSynth = new Tone.Synth({
-        oscillator: { type: "sine" },
-        envelope: { attack: 0.01, decay: 0.1, sustain: 0.0, release: 0.1 }
-    }).toDestination();
+function getAvailableRow(col) {
+  for (let r = ROWS - 1; r >= 0; r--) {
+    if (board[r][col] === null) return r;
+  }
+  return -1;
+}
 
-    // Changed winSynth to Tone.PolySynth to handle multiple notes
-    const winSynth = new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: "triangle" },
-        envelope: { attack: 0.05, decay: 0.2, sustain: 0.0, release: 0.3 }
-    }).toDestination();
+function animateDiscDrop(col, row, player, callback) {
+  const disc = document.createElement("div");
+  disc.className = `disc ${player} animate`;
+  const cellSize = document.querySelector(".cell").offsetWidth;
+  disc.style.left = `${col * cellSize}px`;
+  document.getElementById("board").appendChild(disc);
 
-    const loseSynth = new Tone.Synth({
-        oscillator: { type: "sawtooth" },
-        envelope: { attack: 0.05, decay: 0.3, sustain: 0.0, release: 0.4 }
-    }).toDestination();
-
-    const drawSynth = new Tone.Synth({
-        oscillator: { type: "square" },
-        envelope: { attack: 0.02, decay: 0.15, sustain: 0.0, release: 0.2 }
-    }).toDestination();
-
-    function playDropSound() {
-        dropSynth.triggerAttackRelease("C4", "8n");
+  let currentTop = 0;
+  const targetTop = row * cellSize;
+  const interval = setInterval(() => {
+    if (currentTop >= targetTop) {
+      clearInterval(interval);
+      disc.classList.remove("animate");
+      disc.style.top = `${targetTop}px`;
+      callback();
+    } else {
+      currentTop += 10;
+      disc.style.top = `${currentTop}px`;
     }
+  }, 10);
+}
 
-    function playWinSound() {
-        // Now correctly uses an array of notes with PolySynth
-        winSynth.triggerAttackRelease(["C5", "E5", "G5"], "4n");
+function dropDisc(col) {
+  if (isAnimatingDisc || !isValidMove(col)) return false;
+
+  const row = getAvailableRow(col);
+  if (row === -1) return false;
+
+  isAnimatingDisc = true;
+  playDropSound();
+  animateDiscDrop(col, row, currentPlayer, () => {
+    board[row][col] = currentPlayer;
+    drawBoard();
+    isAnimatingDisc = false;
+    checkGameStatus(row, col);
+  });
+
+  return true;
+}
+
+function checkGameStatus(row, col) {
+  if (checkWin(row, col)) {
+    setTimeout(() => alert(`${currentPlayer.toUpperCase()} wins!`), 10);
+    return;
+  }
+  if (isDraw()) {
+    setTimeout(() => alert("It's a draw!"), 10);
+    return;
+  }
+  currentPlayer = currentPlayer === "red" ? "yellow" : "red";
+
+  if (vsBot && currentPlayer === botPlaysAs) {
+    setTimeout(makeBotMove, 500);
+  }
+}
+
+function isDraw() {
+  return board[0].every(cell => cell !== null);
+}
+
+function checkWin(row, col) {
+  const color = board[row][col];
+  for (const { dr, dc } of directions) {
+    let count = 1;
+    count += countDirection(row, col, dr, dc, color);
+    count += countDirection(row, col, -dr, -dc, color);
+    if (count >= 4) return true;
+  }
+  return false;
+}
+
+function countDirection(r, c, dr, dc, color) {
+  let count = 0;
+  for (let i = 1; i < 4; i++) {
+    const nr = r + dr * i;
+    const nc = c + dc * i;
+    if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) break;
+    if (board[nr][nc] === color) count++;
+    else break;
+  }
+  return count;
+}
+
+function drawBoard() {
+  const boardEl = document.getElementById("board");
+  boardEl.innerHTML = "";
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const cell = document.createElement("div");
+      cell.className = "cell";
+      if (board[r][c]) {
+        const disc = document.createElement("div");
+        disc.className = `disc ${board[r][c]}`;
+        cell.appendChild(disc);
+      }
+      boardEl.appendChild(cell);
     }
+  }
+}
 
-    function playLoseSound() {
-        loseSynth.triggerAttackRelease("C3", "2n");
+function makeBotMove() {
+  const bestMove = findBestMove(board, difficulty, true, -Infinity, Infinity).column;
+  if (bestMove !== -1) dropDisc(bestMove);
+}
+
+function findBestMove(boardState, depth, isMaximizing, alpha, beta) {
+  if (depth === 0 || isTerminal(boardState)) {
+    return { score: evaluate(boardState), column: -1 };
+  }
+
+  const validCols = getValidColumns(boardState);
+  let bestCol = validCols[0];
+
+  if (isMaximizing) {
+    let maxEval = -Infinity;
+    for (const col of validCols) {
+      const row = getAvailableRowOnBoard(boardState, col);
+      const newBoard = cloneBoard(boardState);
+      newBoard[row][col] = botPlaysAs;
+      const eval = findBestMove(newBoard, depth - 1, false, alpha, beta).score;
+      if (eval > maxEval) {
+        maxEval = eval;
+        bestCol = col;
+      }
+      alpha = Math.max(alpha, eval);
+      if (beta <= alpha) break;
     }
-
-    function playDrawSound() {
-        drawSynth.triggerAttackRelease("D4", "4n");
+    return { score: maxEval, column: bestCol };
+  } else {
+    let minEval = Infinity;
+    for (const col of validCols) {
+      const row = getAvailableRowOnBoard(boardState, col);
+      const newBoard = cloneBoard(boardState);
+      newBoard[row][col] = botPlaysAs === "red" ? "yellow" : "red";
+      const eval = findBestMove(newBoard, depth - 1, true, alpha, beta).score;
+      if (eval < minEval) {
+        minEval = eval;
+        bestCol = col;
+      }
+      beta = Math.min(beta, eval);
+      if (beta <= alpha) break;
     }
+    return { score: minEval, column: bestCol };
+  }
+}
+
+function isTerminal(boardState) {
+  return getValidColumns(boardState).length === 0;
+}
+
+function evaluate(boardState) {
+  return Math.random(); // Placeholder, can add smarter evaluation
+}
+
+function getValidColumns(boardState) {
+  return boardState[0].map((cell, col) => (cell === null ? col : null)).filter(c => c !== null);
+}
+
+function getAvailableRowOnBoard(boardState, col) {
+  for (let r = ROWS - 1; r >= 0; r--) {
+    if (boardState[r][col] === null) return r;
+  }
+  return -1;
+}
+
+function cloneBoard(boardState) {
+  return boardState.map(row => [...row]);
+}
+
+// Attach event listeners (if not already present)
+document.querySelectorAll(".cell").forEach((cell, index) => {
+  const col = index % COLS;
+  cell.addEventListener("click", () => {
+    if (!vsBot || currentPlayer !== botPlaysAs) dropDisc(col);
+  });
+});
 
-    // --- Screen Management ---
-    function switchScreen(screenId) {
-        const screens = document.querySelectorAll('.screen');
-        screens.forEach(screen => {
-            if (screen.id === screenId) {
-                screen.classList.add('active');
-                if (screenId === 'game-screen') {
-                    document.body.style.backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--background-color-dark');
-                } else if (screenId === 'home-screen') {
-                    document.body.style.backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--background-color-light');
-                }
-            } else {
-                screen.classList.remove('active');
-            }
-        });
-    }
-
-    // --- Initialize Game ---
-    function initGame() {
-        board = Array(ROWS).fill(0).map(() => Array(COLS).fill(0));
-        currentPlayer = 1;
-        gameOver = false;
-        winner = null;
-        winningLine = null;
-        floatingDiscColumn = -1;
-        isBotTurn = false;
-        isAnimatingDisc = false;
-        playerTurnIndicator.textContent = '';
-        botThinkingMessage.style.display = 'none';
-        clearConfetti(); // Clear any existing confetti
-
-        gameCanvas.width = COLS * CELL_SIZE + 2 * BOARD_PADDING;
-        gameCanvas.height = ROWS * CELL_SIZE + 2 * BOARD_PADDING;
-
-        drawBoard();
-        updatePlayerTurnIndicator();
-    }
-
-    // --- Drawing Functions ---
-    function drawBoard() {
-        ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
-        ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--board-color');
-        ctx.beginPath();
-        ctx.roundRect(0, 0, gameCanvas.width, gameCanvas.height, 25); /* More rounded corners */
-        ctx.fill();
-
-        for (let r = 0; r < ROWS; r++) {
-            for (let c = 0; c < COLS; c++) {
-                const x = c * CELL_SIZE + CELL_SIZE / 2 + BOARD_PADDING;
-                const y = r * CELL_SIZE + CELL_SIZE / 2 + BOARD_PADDING;
-                ctx.beginPath();
-                ctx.arc(x, y, DISC_RADIUS, 0, Math.PI * 2);
-                if (board[r][c] === 0) {
-                    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--empty-slot-color');
-                } else if (board[r][c] === 1) {
-                    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--player1-color');
-                } else {
-                    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--player2-color');
-                }
-                ctx.fill();
-                ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)'; /* Stronger border for discs */
-                ctx.lineWidth = 3;
-                ctx.stroke();
-            }
-        }
-
-        if (gameOver && winner && winningLine) {
-            drawWinningLine(winningLine);
-        }
-
-        if (floatingDiscColumn !== -1 && !gameOver && !isAnimatingDisc) {
-            drawFloatingDisc();
-        }
-    }
-
-    function drawFloatingDisc() {
-        const x = floatingDiscColumn * CELL_SIZE + CELL_SIZE / 2 + BOARD_PADDING;
-        const y = DISC_RADIUS + 5; // Slightly above the board
-        ctx.beginPath();
-        ctx.arc(x, y, DISC_RADIUS, 0, Math.PI * 2);
-        ctx.fillStyle = currentPlayer === 1 ?
-            getComputedStyle(document.documentElement).getPropertyValue('--player1-color') :
-            getComputedStyle(document.documentElement).getPropertyValue('--player2-color');
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
-        ctx.lineWidth = 3;
-        ctx.stroke();
-
-        // Draw a subtle hover highlight for the column
-        ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--hover-column-color');
-        ctx.fillRect(
-            floatingDiscColumn * CELL_SIZE + BOARD_PADDING,
-            BOARD_PADDING,
-            CELL_SIZE,
-            ROWS * CELL_SIZE
-        );
-    }
-
-    function drawWinningLine(line) {
-        if (!line || line.length !== 4) return;
-        ctx.strokeStyle = 'rgba(255, 255, 0, 0.9)'; /* Bright yellow for winning line */
-        ctx.lineWidth = 10;
-        ctx.lineCap = 'round';
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = 'rgba(255, 255, 0, 0.8)';
-
-        const startX = line[0].col * CELL_SIZE + CELL_SIZE / 2 + BOARD_PADDING;
-        const startY = line[0].row * CELL_SIZE + CELL_SIZE / 2 + BOARD_PADDING;
-        const endX = line[3].col * CELL_SIZE + CELL_SIZE / 2 + BOARD_PADDING;
-        const endY = line[3].row * CELL_SIZE + CELL_SIZE / 2 + BOARD_PADDING;
-
-        // Animate the line drawing
-        let animationProgress = 0;
-        const animateLine = () => {
-            ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
-            drawBoard(); // Redraw board without the winning line first
-            ctx.strokeStyle = 'rgba(255, 255, 0, 0.9)';
-            ctx.lineWidth = 10;
-            ctx.lineCap = 'round';
-            ctx.shadowBlur = 15;
-            ctx.shadowColor = 'rgba(255, 255, 0, 0.8)';
-
-            ctx.beginPath();
-            ctx.moveTo(startX, startY);
-            const currentX = startX + (endX - startX) * animationProgress;
-            const currentY = startY + (endY - startY) * animationProgress;
-            ctx.lineTo(currentX, currentY);
-            ctx.stroke();
-
-            animationProgress += 0.05; // Adjust speed
-            if (animationProgress < 1.0) {
-                requestAnimationFrame(animateLine);
-            } else {
-                // Ensure the full line is drawn at the end
-                ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
-                drawBoard(); // Redraw board with the final line
-                ctx.beginPath();
-                ctx.moveTo(startX, startY);
-                ctx.lineTo(endX, endY);
-                ctx.stroke();
-                ctx.shadowBlur = 0; /* Reset shadow */
-            }
-        };
-        requestAnimationFrame(animateLine);
-    }
-
-
-    // --- Game Logic ---
-    function updatePlayerTurnIndicator() {
-        if (gameOver) {
-            playerTurnIndicator.textContent = '';
-            playerTurnIndicator.style.animation = 'none'; /* Stop pulse animation */
-            return;
-        }
-        playerTurnIndicator.textContent = `Player ${currentPlayer}'s Turn`;
-        playerTurnIndicator.style.color = currentPlayer === 1 ?
-            getComputedStyle(document.documentElement).getPropertyValue('--player1-color') :
-            getComputedStyle(document.documentElement).getPropertyValue('--player2-color');
-        playerTurnIndicator.style.animation = 'pulse 1.5s infinite alternate'; /* Restart pulse animation */
-    }
-
-    function dropDisc(col) {
-        if (gameOver || isAnimatingDisc) return false;
-        let targetRow = -1;
-        for (let r = ROWS - 1; r >= 0; r--) {
-            if (board[r][col] === 0) {
-                targetRow = r;
-                break;
-            }
-        }
-
-        if (targetRow !== -1) {
-            isAnimatingDisc = true;
-            playDropSound(); // Play disc drop sound
-            animateDiscDrop(col, targetRow, currentPlayer, () => {
-                board[targetRow][col] = currentPlayer;
-                drawBoard(); // Redraw board with the disc in place
-                isAnimatingDisc = false;
-                checkGameStatus(targetRow, col);
-            });
-            return true;
-        }
-        return false;
-    }
-
-    function animateDiscDrop(col, targetRow, player, callback) {
-        const startY = DISC_RADIUS + 5; // Starting Y (from floating position)
-        const endY = targetRow * CELL_SIZE + CELL_SIZE / 2 + BOARD_PADDING; // Target Y
-        const startX = col * CELL_SIZE + CELL_SIZE / 2 + BOARD_PADDING;
-
-        let currentY = startY;
-        const animationStartTime = performance.now();
-
-        const animate = (currentTime) => {
-            const elapsedTime = currentTime - animationStartTime;
-            const progress = Math.min(elapsedTime / ANIMATION_DURATION, 1); // Clamp to 1
-            currentY = startY + (endY - startY) * progress;
-
-            ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
-            drawBoard(); // Redraw static board
-            ctx.beginPath();
-            ctx.arc(startX, currentY, DISC_RADIUS, 0, Math.PI * 2);
-            ctx.fillStyle = player === 1 ?
-                getComputedStyle(document.documentElement).getPropertyValue('--player1-color') :
-                getComputedStyle(document.documentElement).getPropertyValue('--player2-color');
-            ctx.fill();
-            ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
-            ctx.lineWidth = 3;
-            ctx.stroke();
-
-            if (progress < 1) {
-                requestAnimationFrame(animate);
-            } else {
-                callback(); // Animation complete
-            }
-        };
-        requestAnimationFrame(animate);
-    }
-
-    function checkGameStatus(row, col) {
-        if (checkWin(row, col, currentPlayer)) {
-            winner = currentPlayer;
-            gameOver = true;
-            handleGameEnd();
-        } else if (checkDraw()) {
-            winner = 'draw';
-            gameOver = true;
-            handleGameEnd();
-        } else {
-            currentPlayer = currentPlayer === 1 ? 2 : 1;
-            updatePlayerTurnIndicator();
-            if (gameMode === 'bot' && currentPlayer === 2) {
-                isBotTurn = true;
-                botThinkingMessage.style.display = 'block';
-                // Delay bot move to make it seem like it's "thinking"
-                setTimeout(makeBotMove, 1000 + Math.random() * 500);
-            }
-        }
-    }
-
-    function checkWin(row, col, player) {
-        // Checks for 4 in a row horizontally, vertically, and diagonally
-        const directions = [
-            { dr: 0, dc: 1 },    // horizontal
-            { dr: 1, dc: 0 },    // vertical
-            { dr: 1, dc: 1 },    // diagonal down
-            { dr: 1, dc: -1 }    // diagonal up
-        ];
-        for (let { dr, dc } of directions) {
-            let count = 1;
-            let lineCoords = [{ row, col }];
-
-            // Check forward
-            for (let step = 1; step < 4; step++) {
-                const r = row + dr * step;
-                const c = col + dc * step;
-                if (r >= 0 && r < ROWS && c >= 0 && c < COLS && board[r][c] === player) {
-                    count++;
-                    lineCoords.push({ row: r, col: c });
-                } else {
-                    break;
-                }
-            }
-
-            // Check backward
-            for (let step = 1; step < 4; step++) {
-                const r = row - dr * step;
-                const c = col - dc * step;
-                if (r >= 0 && r < ROWS && c >= 0 && c < COLS && board[r][c] === player) {
-                    count++;
-                    lineCoords.unshift({ row: r, col: c });
-                } else {
-                    break;
-                }
-            }
-
-            if (count >= 4) {
-                winningLine = lineCoords; // Store all 4 winning coordinates
-                return true;
-            }
-        }
-        return false;
-    }
-
-    function checkDraw() {
-        for (let c = 0; c < COLS; c++) {
-            if (board[0][c] === 0) return false;
-        }
-        return true;
-    }
-
-    function handleGameEnd() {
-        drawBoard(); // Ensure final board state is drawn
-        updateStats();
-        setTimeout(() => {
-            let message = '';
-            if (winner === 1) {
-                message = 'YOU WIN!';
-                resultMessage.style.color = getComputedStyle(document.documentElement).getPropertyValue('--player1-color');
-                triggerConfetti();
-                playWinSound(); // Play win sound
-            } else if (winner === 2) {
-                message = (gameMode === 'bot') ? 'YOU LOST!' : 'PLAYER 2 WINS!';
-                resultMessage.style.color = getComputedStyle(document.documentElement).getPropertyValue('--player2-color');
-                playLoseSound(); // Play lose sound
-            } else {
-                message = 'IT\'S A DRAW!';
-                resultMessage.style.color = '#fff';
-                playDrawSound(); // Play draw sound
-            }
-            resultMessage.textContent = message;
-            switchScreen('result-screen');
-        }, ANIMATION_DURATION + 200); // Wait for disc drop animation + a little more
-    }
-
-    // --- Confetti Animation ---
-    function triggerConfetti() {
-        const colors = ['#f00', '#0f0', '#00f', '#ff0', '#0ff', '#f0f'];
-        for (let i = 0; i < 100; i++) {
-            const confetti = document.createElement('div');
-            confetti.classList.add('confetti');
-            confetti.style.left = `${Math.random() * 100}vw`;
-            confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-            confetti.style.animationDelay = `${Math.random() * 0.5}s`;
-            confetti.style.transform = `rotateZ(${Math.random() * 360}deg)`;
-            confettiContainer.appendChild(confetti);
-        }
-        setTimeout(clearConfetti, 3000); // Clear confetti after 3 seconds
-    }
-
-    function clearConfetti() {
-        confettiContainer.innerHTML = '';
-    }
-
-    // --- Statistics ---
-    function loadStats() {
-        const saved = localStorage.getItem('connectFourStats');
-        if (saved) stats = JSON.parse(saved);
-        updateStatsDisplay();
-    }
-    function saveStats() {
-        localStorage.setItem('connectFourStats', JSON.stringify(stats));
-    }
-    function updateStats() {
-        if (winner === 1) {
-            stats.wins++;
-            stats.currentStreak++;
-            if (stats.currentStreak > stats.bestStreak) {
-                stats.bestStreak = stats.currentStreak;
-            }
-        } else if (winner === 2) {
-            stats.losses++;
-            stats.currentStreak = 0;
-        } else if (winner === 'draw') {
-            stats.draws++;
-            stats.currentStreak = 0;
-        }
-        saveStats();
-        updateStatsDisplay();
-    }
-    function updateStatsDisplay() {
-        statsWins.textContent = stats.wins;
-        statsLosses.textContent = stats.losses;
-        statsCurrentStreak.textContent = stats.currentStreak;
-        statsBestStreak.textContent = stats.bestStreak;
-        const total = stats.wins + stats.losses + stats.draws;
-        const perc = total === 0 ? 0 : Math.round((stats.wins / total) * 100);
-        statsWinPercentage.textContent = `${perc}%`;
-    }
-
-    // --- Minimax AI with enhanced heuristics ---
-    function makeBotMove() {
-        let bestCol = -1;
-        // Increased depth for Medium and Hard difficulties to make the bot more formidable.
-        // Depth 2 for Easy (random-like), Depth 5 for Medium (strategic), Depth 9 for Hard (near-unbeatable).
-        const depth = (difficulty === 2) ? 9 : (difficulty === 1) ? 5 : 2;
-        
-        if (difficulty === 0) {
-            // Easy: random move among valid columns
-            const validCols = [];
-            for (let c = 0; c < COLS; c++) {
-                if (board[0][c] === 0) validCols.push(c);
-            }
-            if (validCols.length > 0) {
-                bestCol = validCols[Math.floor(Math.random() * validCols.length)];
-            }
-        } else {
-            // For Medium and Hard, use Minimax
-            const result = findBestMove(board, depth, -Infinity, Infinity, true);
-            bestCol = result.column;
-        }
-
-        if (bestCol !== -1 && dropDisc(bestCol)) {
-            isBotTurn = false;
-        } else {
-            // Fallback: If for some reason bestCol is invalid (shouldn't happen with correct logic),
-            // find first valid column.
-            for(let c = 0; c < COLS; c++) {
-                if (board[0][c] === 0) {
-                    dropDisc(c);
-                    break;
-                }
-            }
-            isBotTurn = false;
-        }
-        botThinkingMessage.style.display = 'none';
-    }
-
-    /**
-     * Minimax algorithm with Alpha-Beta Pruning.
-     * @param {Array<Array<number>>} currentBoard - The current state of the game board.
-     * @param {number} depth - The current search depth.
-     * @param {number} alpha - Alpha value for pruning.
-     * @param {number} beta - Beta value for pruning.
-     * @param {boolean} isMaximizing - True if it's the maximizing player's turn (bot), false for minimizing (human).
-     * @returns {{score: number, column: number}} The best score and corresponding column.
-     */
-    function findBestMove(currentBoard, depth, alpha, beta, isMaximizing) {
-        const botPlayer = 2;
-        const humanPlayer = 1;
-
-        // Check terminal states (win/loss/draw or max depth reached)
-        if (checkWinOnBoard(currentBoard, botPlayer)) {
-            return { score: 1000000 + depth, column: -1 }; // Bot wins, prioritize shallower wins
-        }
-        if (checkWinOnBoard(currentBoard, humanPlayer)) {
-            return { score: -1000000 - depth, column: -1 }; // Human wins, prioritize deeper losses for bot
-        }
-        if (checkDrawOnBoard(currentBoard)) {
-            return { score: 0, column: -1 }; // Draw
-        }
-        if (depth === 0) {
-            return { score: evaluateBoard(currentBoard), column: -1 }; // Max depth reached, evaluate board
-        }
-
-        // Generate valid moves
-        const validCols = [];
-        for (let c = 0; c < COLS; c++) {
-            if (currentBoard[0][c] === 0) validCols.push(c);
-        }
-
-        // Move ordering: prioritize center columns, then check for immediate threats/wins
-        validCols.sort((a, b) => {
-            const centerCol = Math.floor(COLS / 2);
-            const distA = Math.abs(a - centerCol);
-            const distB = Math.abs(b - centerCol);
-            return distA - distB; // Closer to center first
-        });
-
-        let bestCol = validCols[0]; // Initialize with a valid column
-
-        if (isMaximizing) {
-            let maxEval = -Infinity;
-            for (let c of validCols) {
-                const row = getAvailableRow(currentBoard, c);
-                if (row === -1) continue; // Column is full
-
-                const newBoard = cloneBoard(currentBoard);
-                newBoard[row][c] = botPlayer;
-                const eval = findBestMove(newBoard, depth - 1, alpha, beta, false).score;
-
-                if (eval > maxEval) {
-                    maxEval = eval;
-                    bestCol = c;
-                }
-                alpha = Math.max(alpha, eval);
-                if (beta <= alpha) break; // Alpha-beta pruning
-            }
-            return { score: maxEval, column: bestCol };
-        } else { // Minimizing player (human)
-            let minEval = Infinity;
-            for (let c of validCols) {
-                const row = getAvailableRow(currentBoard, c);
-                if (row === -1) continue; // Column is full
-
-                const newBoard = cloneBoard(currentBoard);
-                newBoard[row][c] = humanPlayer;
-                const eval = findBestMove(newBoard, depth - 1, alpha, beta, true).score;
-
-                if (eval < minEval) {
-                    minEval = eval;
-                    bestCol = c;
-                }
-                beta = Math.min(beta, eval);
-                if (beta <= alpha) break; // Alpha-beta pruning
-            }
-            return { score: minEval, column: bestCol };
-        }
-    }
-
-    /**
-     * Finds the lowest available row in a given column.
-     * @param {Array<Array<number>>} bd - The board.
-     * @param {number} col - The column to check.
-     * @returns {number} The row index, or -1 if the column is full.
-     */
-    function getAvailableRow(bd, col) {
-        for (let r = ROWS - 1; r >= 0; r--) {
-            if (bd[r][col] === 0) return r;
-        }
-        return -1;
-    }
-
-    /**
-     * Creates a deep copy of the board.
-     * @param {Array<Array<number>>} bd - The board to clone.
-     * @returns {Array<Array<number>>} A new board array.
-     */
-    function cloneBoard(bd) {
-        return bd.map(row => [...row]);
-    }
-
-    /**
-     * Evaluates the current board state for the AI.
-     * Positive scores favor the bot (Player 2), negative scores favor the human (Player 1).
-     * @param {Array<Array<number>>} bd - The board to evaluate.
-     * @returns {number} The calculated score.
-     */
-    function evaluateBoard(bd) {
-        let score = 0;
-        const botPlayer = 2;
-        const humanPlayer = 1;
-
-        // Prioritize center control
-        score += scoreCenter(bd, botPlayer) * 3;
-        score -= scoreCenter(bd, humanPlayer) * 2; // Less penalty for opponent's center
-
-        // Evaluate potential lines for both players
-        score += scorePotential(bd, botPlayer); // AI's offensive potential
-        score -= scorePotential(bd, humanPlayer); // Human's offensive potential (AI wants to minimize this)
-
-        return score;
-    }
-
-    /**
-     * Scores how many of a player's discs are in the center column.
-     * @param {Array<Array<number>>} bd - The board.
-     * @param {number} player - The player ID (1 or 2).
-     * @returns {number} The count of player's discs in the center column.
-     */
-    function scoreCenter(bd, player) {
-        const centerCol = Math.floor(COLS / 2);
-        let count = 0;
-        for (let r = 0; r < ROWS; r++) {
-            if (bd[r][centerCol] === player) count++;
-        }
-        return count;
-    }
-
-    /**
-     * Scores potential winning lines for a given player.
-     * This is the core heuristic for the AI's "intelligence."
-     * @param {Array<Array<number>>} bd - The board.
-     * @param {number} player - The player ID (1 or 2).
-     * @returns {number} The total score from potential lines.
-     */
-    function scorePotential(bd, player) {
-        const opponent = (player === 2) ? 1 : 2;
-        let totalScore = 0;
-
-        // Define all possible 4-disc windows to check
-        const windows = [];
-
-        // Horizontal windows
-        for (let r = 0; r < ROWS; r++) {
-            for (let c = 0; c <= COLS - 4; c++) {
-                windows.push([bd[r][c], bd[r][c+1], bd[r][c+2], bd[r][c+3]]);
-            }
-        }
-        // Vertical windows
-        for (let c = 0; c < COLS; c++) {
-            for (let r = 0; r <= ROWS - 4; r++) {
-                windows.push([bd[r][c], bd[r+1][c], bd[r+2][c], bd[r+3][c]]);
-            }
-        }
-        // Diagonal (positive slope) windows
-        for (let r = 0; r <= ROWS - 4; r++) {
-            for (let c = 0; c <= COLS - 4; c++) {
-                windows.push([bd[r][c], bd[r+1][c+1], bd[r+2][c+2], bd[r+3][c+3]]);
-            }
-        }
-        // Diagonal (negative slope) windows
-        for (let r = 3; r < ROWS; r++) {
-            for (let c = 0; c <= COLS - 4; c++) {
-                windows.push([bd[r][c], bd[r-1][c+1], bd[r-2][c+2], bd[r-3][c+3]]);
-            }
-        }
-
-        // Score each window
-        for (const window of windows) {
-            const countPlayer = window.filter(c => c === player).length;
-            const countOpponent = window.filter(c => c === opponent).length;
-            const countEmpty = window.filter(c => c === 0).length;
-
-            if (countPlayer === 4) {
-                totalScore += 100000; // Immediate win (should be caught by terminal state, but good as fallback)
-            } else if (countPlayer === 3 && countEmpty === 1) {
-                totalScore += 1000; // Strong threat: 3 in a row with 1 empty (very high value)
-            } else if (countPlayer === 2 && countEmpty === 2) {
-                totalScore += 100; // Moderate threat: 2 in a row with 2 empty
-            } else if (countOpponent === 3 && countEmpty === 1) {
-                totalScore -= 900; // Block opponent's immediate win (high priority negative score)
-            } else if (countOpponent === 2 && countEmpty === 2) {
-                totalScore -= 90; // Block opponent's potential threat
-            }
-        }
-        return totalScore;
-    }
-
-    /**
-     * Checks if a player has won on a given board.
-     * This is a simplified check for terminal states within minimax, not for drawing winning line.
-     * @param {Array<Array<number>>} bd - The board to check.
-     * @param {number} player - The player ID (1 or 2).
-     * @returns {boolean} True if the player has won, false otherwise.
-     */
-    function checkWinOnBoard(bd, player) {
-        // Check horizontal
-        for (let r = 0; r < ROWS; r++) {
-            for (let c = 0; c <= COLS - 4; c++) {
-                if (bd[r][c] === player && bd[r][c+1] === player && bd[r][c+2] === player && bd[r][c+3] === player) {
-                    return true;
-                }
-            }
-        }
-        // Check vertical
-        for (let r = 0; r <= ROWS - 4; r++) {
-            for (let c = 0; c < COLS; c++) {
-                if (bd[r][c] === player && bd[r+1][c] === player && bd[r+2][c] === player && bd[r+3][c] === player) {
-                    return true;
-                }
-            }
-        }
-        // Check diagonal (positive slope)
-        for (let r = 0; r <= ROWS - 4; r++) {
-            for (let c = 0; c <= COLS - 4; c++) {
-                if (bd[r][c] === player && bd[r+1][c+1] === player && bd[r+2][c+2] === player && bd[r+3][c+3] === player) {
-                    return true;
-                }
-            }
-        }
-        // Check diagonal (negative slope)
-        for (let r = 3; r < ROWS; r++) {
-            for (let c = 0; c <= COLS - 4; c++) {
-                if (bd[r][c] === player && bd[r-1][c+1] === player && bd[r-2][c+2] === player && bd[r-3][c+3] === player) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Checks if the board is in a draw state.
-     * @param {Array<Array<number>>} bd - The board to check.
-     * @returns {boolean} True if it's a draw, false otherwise.
-     */
-    function checkDrawOnBoard(bd) {
-        for (let c = 0; c < COLS; c++) {
-            if (bd[0][c] === 0) return false; // If any top cell is empty, not a draw
-        }
-        return true; // All cells full, no winner
-    }
-
-    // --- Event Handlers ---
-    function handleCanvasClick(event) {
-        if (gameOver || isBotTurn || isAnimatingDisc) return;
-
-        const rect = gameCanvas.getBoundingClientRect();
-        const mouseX = event.clientX - rect.left;
-        const col = Math.floor((mouseX - BOARD_PADDING) / CELL_SIZE);
-
-        if (col >= 0 && col < COLS) {
-            dropDisc(col);
-        }
-    }
-
-    function handleCanvasMouseMove(event) {
-        if (gameOver || isBotTurn || isAnimatingDisc) {
-            if (floatingDiscColumn !== -1) {
-                floatingDiscColumn = -1;
-                drawBoard(); // Clear any lingering floating disc
-            }
-            return;
-        }
-
-        const rect = gameCanvas.getBoundingClientRect();
-        const mouseX = event.clientX - rect.left;
-        const col = Math.floor((mouseX - BOARD_PADDING) / CELL_SIZE);
-
-        if (col >= 0 && col < COLS && board[0][col] === 0) {
-            if (floatingDiscColumn !== col) {
-                floatingDiscColumn = col;
-                drawBoard(); // Redraw to show floating disc in new position
-            }
-        } else {
-            if (floatingDiscColumn !== -1) {
-                floatingDiscColumn = -1;
-                drawBoard(); // Redraw to hide floating disc
-            }
-        }
-    }
-
-    function handleCanvasMouseLeave() {
-        if (floatingDiscColumn !== -1) {
-            floatingDiscColumn = -1;
-            drawBoard(); // Redraw to hide floating disc
-        }
-    }
-
-    // --- UI Interactions ---
-    function showStatsModal() {
-        loadStats();
-        statsModal.classList.add('active');
-    }
-
-    function hideStatsModal() {
-        statsModal.classList.remove('active');
-    }
-
-    function showConfirmation(message, onConfirm) {
-        confirmationMessage.textContent = message;
-        actionToConfirm = onConfirm;
-        confirmationModal.classList.add('active');
-    }
-
-    function hideConfirmation() {
-        confirmationModal.classList.remove('active');
-        actionToConfirm = null;
-    }
-
-    // --- Event Listeners ---
-    document.getElementById('play-bot-btn').addEventListener('click', () => {
-        gameMode = 'bot';
-        initGame();
-        switchScreen('game-screen');
-    });
-
-    document.getElementById('play-friend-btn').addEventListener('click', () => {
-        gameMode = 'friend';
-        initGame();
-        switchScreen('game-screen');
-    });
-
-    document.getElementById('back-to-home-from-game').addEventListener('click', () => {
-        showConfirmation('Are you sure you want to go back to the home screen? Your current game will be lost.', () => {
-            switchScreen('home-screen');
-            initGame(); // Reset game state when returning home
-            hideConfirmation();
-        });
-    });
-
-    document.getElementById('reset-game-btn').addEventListener('click', () => {
-        showConfirmation('Are you sure you want to reset the current game?', () => {
-            initGame();
-            hideConfirmation();
-        });
-    });
-
-    document.getElementById('play-again-btn').addEventListener('click', () => {
-        initGame();
-        switchScreen('game-screen');
-    });
-
-    document.getElementById('back-to-home-from-result').addEventListener('click', () => {
-        switchScreen('home-screen');
-        initGame(); // Reset game state when returning home
-    });
-
-    document.getElementById('stats-btn').addEventListener('click', showStatsModal);
-    document.getElementById('stats-btn-result').addEventListener('click', showStatsModal);
-    document.getElementById('stats-ok-btn').addEventListener('click', hideStatsModal);
-
-    confirmYesBtn.addEventListener('click', () => {
-        if (actionToConfirm) {
-            actionToConfirm();
-        }
-    });
-
-    confirmNoBtn.addEventListener('click', hideConfirmation);
-
-
-    gameCanvas.addEventListener('click', handleCanvasClick);
-    gameCanvas.addEventListener('mousemove', handleCanvasMouseMove);
-    gameCanvas.addEventListener('mouseleave', handleCanvasMouseLeave);
-
-    difficultyRange.addEventListener('input', (event) => {
-        difficulty = parseInt(event.target.value);
-        const difficultyLevels = ['EASY', 'MEDIUM', 'HARD'];
-        const difficultyColors = [
-            getComputedStyle(document.documentElement).getPropertyValue('--button-bg-green'),
-            getComputedStyle(document.documentElement).getPropertyValue('--button-bg-orange'),
-            getComputedStyle(document.documentElement).getPropertyValue('--button-bg-red')
-        ];
-        const difficultyEmojis = ['😊', '😐', '😠'];
-
-        difficultyLabel.textContent = difficultyLevels[difficulty];
-        difficultyLabel.style.color = difficultyColors[difficulty];
-        difficultyEmoji.textContent = difficultyEmojis[difficulty];
-        
-        // Update the thumb color directly via CSS variable
-        document.documentElement.style.setProperty('--thumb-bg', difficultyColors[difficulty]);
-    });
-
-    // Initial setup
-    initGame();
-    loadStats();
-    // Trigger initial difficulty update to set correct colors/emoji
-    difficultyRange.dispatchEvent(new Event('input'));
 </script>
 </body>
 </html>
