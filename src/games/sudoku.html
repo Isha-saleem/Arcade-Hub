@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sudoku Game</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- jQuery CDN (used by the original script) -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <style>
+        /* Custom CSS for Sudoku grid borders and cells */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #E0F2F7; /* Sky bluish background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 1rem; /* Add some padding for smaller screens */
+            box-sizing: border-box;
+        }
+
+        /* Main game container styling for centering and responsiveness */
+        .game-container {
+            display: flex; /* Ensure it's flex when not hidden */
+            flex-direction: column;
+            gap: 1.5rem;
+            max-width: 90%; /* Responsive width */
+            width: 600px; /* Max width for desktop */
+            background-color: #ffffff;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .sudoku-grid {
+            border-collapse: collapse;
+            width: 100%;
+            aspect-ratio: 1 / 1; /* Keep grid square */
+            max-width: 500px; /* Max width for the grid itself */
+            margin: 0 auto; /* Center the grid */
+        }
+
+        .gridCell {
+            width: calc(100% / 9); /* Equal width for cells */
+            height: calc(100% / 9); /* Equal height for cells */
+            border: 1px solid #cbd5e0; /* Light border for all cells */
+            text-align: center;
+            vertical-align: middle;
+            font-size: clamp(1.2rem, 4vw, 2rem); /* Responsive font size */
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s;
+            border-radius: 0.25rem; /* Slightly rounded corners for cells */
+        }
+
+        .gridCell:hover {
+            background-color: #e2e8f0; /* Hover effect */
+        }
+
+        /* Thicker borders for 3x3 blocks */
+        .topBorder {
+            border-top: 3px solid #334155;
+        }
+        .bottomBorder {
+            border-bottom: 3px solid #334155;
+        }
+        .leftBorder {
+            border-left: 3px solid #334155;
+        }
+        .rightBorder {
+            border-right: 3px solid #334155;
+        }
+
+        /* Adjust for first/last cell borders to avoid double thickness */
+        tr:first-child .gridCell.topBorder {
+            border-top: 3px solid #334155;
+        }
+        tr:last-child .gridCell.bottomBorder {
+            border-bottom: 3px solid #334155;
+        }
+        .gridRow .gridCell:first-child.leftBorder {
+            border-left: 3px solid #334155;
+        }
+        .gridRow .gridCell:last-child.rightBorder {
+            border-right: 3px solid #334155;
+        }
+
+        /* Digit button styling */
+        .digit-button {
+            @apply flex items-center justify-center w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 rounded-full text-xl md:text-2xl font-bold border-2 transition-colors duration-200 cursor-pointer;
+        }
+
+        /* Popup styling */
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .popup-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .popup-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            max-width: 90%;
+            width: 400px;
+        }
+
+        .popup-content button {
+            @apply px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors duration-200;
+        }
+
+        /* Loading spinner */
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 1rem auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Specific styles for digit buttons when not allowed */
+        .digit-button.disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        /* Intro page specific styles */
+        #intro-page {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #E0F2F7; /* Match body background */
+            display: flex; /* Ensure it's flex by default */
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1001; /* Above other popups */
+            text-align: center;
+            padding: 2rem;
+            box-sizing: border-box;
+        }
+
+        #intro-page h1 {
+            font-size: clamp(2.5rem, 8vw, 4rem);
+            font-weight: extrabold;
+            color: #334155;
+            margin-bottom: 1.5rem;
+        }
+
+        #intro-page p {
+            font-size: clamp(1rem, 3vw, 1.25rem);
+            color: #475569;
+            margin-bottom: 2.5rem;
+            max-width: 500px;
+        }
+
+        #intro-page button {
+            /* Enhanced styling for the Start Game button: bluish gradient, oval, highlighted shadow */
+            background-color: bg-blue-500;
+             hover:bg-blue-600 text-white font-bold py-4 px-8 rounded-full shadow-lg transform transition duration-300 hover:scale-105 text-2xl;
+            animation: bounce-slow 2s infinite; /* Apply the bounce animation */
+        }
+
+        /* Keyframe animation for the slow bounce effect */
+        @keyframes bounce-slow {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-10px); /* Adjust bounce height */
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+
+    <!-- Intro Page -->
+    <div id="intro-page">
+        <h1>Welcome to Sudoku!</h1>
+        <p>Challenge your mind with this classic number puzzle. Fill the 9x9 grid so that each column, each row, and each of the nine 3x3 subgrids contains all of the digits from 1 to 9.</p>
+        <button id="start-game-button" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 px-8 rounded-full shadow-lg transform transition duration-300 hover:scale-105 text-2xl animate-bounce-slow">Start Game</button>
+    </div>
+
+    <div id="game-container" class="game-container">
+        <h1 class="text-3xl md:text-4xl font-extrabold text-center text-gray-800 mb-4">Sudoku</h1>
+
+        <table id="grid" class="sudoku-grid">
+            <!-- Sudoku cells will be inserted here by JavaScript -->
+        </table>
+
+        <div id="digits" class="flex flex-wrap justify-center gap-2 md:gap-3 lg:gap-4 mt-4 hidden">
+            <!-- Digit buttons will be inserted here by JavaScript -->
+            <button id="digit-1" class="digit-button border-red-500 text-red-500 hover:bg-red-50">1</button>
+            <button id="digit-2" class="digit-button border-red-500 text-red-500 hover:bg-red-50">2</button>
+            <button id="digit-3" class="digit-button border-red-500 text-red-500 hover:bg-red-50">3</button>
+            <button id="digit-4" class="digit-button border-red-500 text-red-500 hover:bg-red-50">4</button>
+            <button id="digit-5" class="digit-button border-red-500 text-red-500 hover:bg-red-50">5</button>
+            <button id="digit-6" class="digit-button border-red-500 text-red-500 hover:bg-red-50">6</button>
+            <button id="digit-7" class="digit-button border-red-500 text-red-500 hover:bg-red-50">7</button>
+            <button id="digit-8" class="digit-button border-red-500 text-red-500 hover:bg-red-50">8</button>
+            <button id="digit-9" class="digit-button border-red-500 text-red-500 hover:bg-red-50">9</button>
+            <button id="digit-0" class="digit-button border-gray-400 text-gray-600 hover:bg-gray-50 text-base">Clear</button>
+        </div>
+
+        <div id="buttons1" class="flex flex-wrap justify-center gap-3 md:gap-4 mt-4">
+            <button onclick="restart()" class="px-5 py-2.5 rounded-lg font-semibold text-gray-800 bg-yellow-200 hover:bg-yellow-300 transition-colors duration-200 shadow-md">Restart</button>
+            <button onclick="check()" class="px-5 py-2.5 rounded-lg font-semibold text-gray-800 bg-green-200 hover:bg-green-300 transition-colors duration-200 shadow-md">Check</button>
+            <button onclick="solve()" class="px-5 py-2.5 rounded-lg font-semibold text-gray-800 bg-purple-200 hover:bg-purple-300 transition-colors duration-200 shadow-md">Solve</button>
+            <button onclick="$('#newGrid').popup('open')" class="px-5 py-2.5 rounded-lg font-semibold text-gray-800 bg-red-200 hover:bg-red-300 transition-colors duration-200 shadow-md">New Game</button>
+        </div>
+    </div>
+
+    <!-- Popup for New Game difficulty selection -->
+    <div id="newGrid" class="popup-overlay">
+        <div class="popup-content">
+            <h2 class="text-xl font-bold mb-4">Select Difficulty</h2>
+            <div class="flex flex-col gap-3">
+                <button onclick="newRandomGrid(96)" class="bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600">Easy</button>
+                <button onclick="newRandomGrid(128)" class="bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600">Medium</button>
+                <button onclick="newRandomGrid(160)" class="bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600">Hard</button>
+                <button onclick="newRandomGrid(200)" class="bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600">Expert</button>
+                <button onclick="$('#newGrid').popup('close')" class="bg-gray-300 text-gray-800 py-2 rounded-md hover:bg-gray-400">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Popup for Loading/Waiting -->
+    <div id="waiting" class="popup-overlay">
+        <div class="popup-content">
+            <h2 class="text-xl font-bold mb-4">Generating New Sudoku...</h2>
+            <div class="spinner"></div>
+        </div>
+    </div>
+
+    <script>
+        // Extend jQuery to handle simple popup functionality
+        (function($) {
+            $.fn.popup = function(action) {
+                if (action === 'open') {
+                    this.addClass('open');
+                } else if (action === 'close') {
+                    this.removeClass('open');
+                }
+            };
+        })(jQuery);
+
+        // Original Sudoku Game Logic
+        var T = Array.from(new Array(9), () => new Array(9).fill(0));
+        var Tref = Array.from(new Array(9), () => new Array(9));
+        var Tsol = Array.from(new Array(9), () => new Array(9).fill(0));
+        var digits = new Array(10);
+        var hyp = false;
+        var hyps = [];
+
+        var curX = 0;
+        var curY = 0;
+
+        var col1 = "#B00"; // Red for normal input
+        var col2 = "#0A85FF"; // Blue for hypothesis input
+
+        /**
+         * Shuffles an array in place using the Fisher-Yates (Knuth) algorithm.
+         * @param {Array} array The array to shuffle.
+         * @returns {Array} The shuffled array.
+         */
+        function shuffle(array) {
+            let counter = array.length;
+            while (counter > 0) {
+                let index = Math.floor(Math.random() * counter);
+                counter--;
+                let temp = array[counter];
+                array[counter] = array[index];
+                array[index] = temp;
+            }
+            return array;
+        }
+
+        /**
+         * Generates a shuffled list of all cell coordinates [y, x].
+         * @returns {Array<Array<number>>} An array of [y, x] coordinates.
+         */
+        function randomOrderCells() {
+            var i, j;
+            var arr = [];
+            for (i = 0; i < 9; i++) {
+                for (j = 0; j < 9; j++) {
+                    arr.push([i, j]);
+                }
+            }
+            return shuffle(arr);
+        }
+
+        /**
+         * Sets the display value of a cell (y, x) with number n.
+         * If n is 0, the cell is cleared.
+         * @param {number} y Row index.
+         * @param {number} x Column index.
+         * @param {number} n The number to display (0-9).
+         */
+        function setCell(y, x, n) {
+            if (n == 0) Tref[y][x].innerHTML = "";
+            else Tref[y][x].innerHTML = n.toString();
+        }
+
+        /**
+         * Updates the entire grid display based on the current state of T (game board).
+         * Resets cell colors and background colors.
+         */
+        function updateGrid() {
+            var i, j;
+            for (i = 0; i < 9; i++) {
+                for (j = 0; j < 9; j++) {
+                    setCell(i, j, T[i][j]);
+                    Tref[i][j].style.color = '';
+                    Tref[i][j].style.backgroundColor = '';
+                }
+            }
+        }
+
+        /**
+         * Initializes the Sudoku grid HTML table and attaches event listeners.
+         * Also initializes digit buttons and sets up the initial game state.
+         */
+        function init() {
+            console.log("init() called. Initializing game grid and elements.");
+            var i, j;
+            var tbl = document.getElementById("grid");
+            if (!tbl) {
+                console.error("Error: Sudoku grid table element not found!");
+                return;
+            }
+            // Clear existing rows if init is called multiple times (e.g., on new game)
+            tbl.innerHTML = '';
+
+            for (i = 0; i < 9; i++) {
+                var r = tbl.insertRow(-1);
+                r.className = "gridRow";
+                for (j = 0; j < 9; j++) {
+                    Tref[i][j] = r.insertCell(-1);
+                    Tref[i][j].className = "gridCell";
+                    // Add borders for 3x3 blocks
+                    if (i % 3 == 0) Tref[i][j].classList.add("topBorder");
+                    if (i % 3 == 2) Tref[i][j].classList.add("bottomBorder");
+                    if (j % 3 == 0) Tref[i][j].classList.add("leftBorder");
+                    if (j % 3 == 2) Tref[i][j].classList.add("rightBorder");
+
+                    // Set custom attributes for row (y) and column (x) and clickable status
+                    Tref[i][j].setAttribute("y", i);
+                    Tref[i][j].setAttribute("x", j);
+                    Tref[i][j].setAttribute("clickable", 0); // 0 for fixed, 1 for user-editable
+                }
+            }
+
+            // Attach click listener to grid cells using jQuery delegation
+            $("#grid").off("click", "**").on("click", "td", function(e) { // Use .off() to prevent duplicate handlers
+                clickCell(this);
+                e.stopPropagation(); // Prevent event bubbling
+            });
+
+            // Initialize references to digit buttons
+            for (i = 0; i <= 9; i++) { // Include digit-0 for clear
+                digits[i] = document.getElementById("digit-" + String(i));
+                if (!digits[i]) {
+                    console.error("Error: Digit button 'digit-" + String(i) + "' not found!");
+                }
+            }
+
+            // Hide digits and show main buttons initially
+            const digitsPanel = document.getElementById("digits");
+            const buttonsPanel = document.getElementById("buttons1");
+            if (digitsPanel) digitsPanel.style.display = "none";
+            if (buttonsPanel) buttonsPanel.style.display = "inline-flex"; // Ensure it's visible after init
+
+            // Initial button color states
+            const but1 = document.getElementById("but1");
+            const but2 = document.getElementById("but2");
+            const but3 = document.getElementById("but3");
+
+            if (but1) but1.style.color = "#000"; // Hypothesis
+            if (but2) but2.style.color = "#B8B8B8"; // Keep Hyp.
+            if (but3) but3.style.color = "#B8B8B8"; // Clear Hyp.
+
+            // Generate an initial random grid after a short delay
+            setTimeout(function() { getRandomGrid(96); }, 250);
+        }
+
+        /**
+         * Determines which numbers are allowed in a given cell (y, x) based on current grid A.
+         * @param {Array<Array<number>>} A The current Sudoku grid.
+         * @param {number} y Row index.
+         * @param {number} x Column index.
+         * @returns {Array<number>} An array of allowed numbers (1-9).
+         */
+        function allowed(A, y, x) {
+            var i;
+            var res = [];
+            var arr = new Array(10).fill(true); // true means allowed
+
+            if (A[y][x] > 0) return res; // If cell is already filled, no numbers are allowed
+
+            // Check row
+            for (i = 0; i < 9; i++) arr[A[y][i]] = false;
+            // Check column
+            for (i = 0; i < 9; i++) arr[A[i][x]] = false;
+            // Check 3x3 block
+            for (i = 0; i < 9; i++)
+                arr[A[y - (y % 3) + Math.floor(i / 3)][x - (x % 3) + (i % 3)]] = false;
+
+            // Collect allowed numbers
+            for (i = 1; i < 10; i++)
+                if (arr[i]) res.push(i);
+            return res;
+        }
+
+        /**
+         * Finds the cell with the fewest allowed hypotheses (potential numbers) in grid A.
+         * This is a heuristic for the backtracking algorithm.
+         * @param {Array<Array<number>>} A The current Sudoku grid.
+         * @returns {Array<Array<number>, number, number>} An array containing:
+         * - The list of allowed numbers for the best cell.
+         * - The row index of the best cell.
+         * - The column index of the best cell.
+         */
+        function bestHypothesis(A) {
+            var i, j, s, n;
+            var bSc = 10; // Best score (minimum number of allowed values), initialized to > 9
+            var bCoords = [9, 9]; // Coordinates of the best cell, initialized to invalid
+            var bAll = []; // Allowed values for the best cell
+
+            for (i = 0; i < 9; i++) {
+                for (j = 0; j < 9; j++) {
+                    if (A[i][j] == 0) { // If cell is empty
+                        s = allowed(A, i, j); // Get allowed numbers for this cell
+                        n = s.length;
+                        if (n < bSc) { // If this cell has fewer allowed numbers than current best
+                            bSc = n;
+                            bCoords = [i, j];
+                            bAll = s;
+                        }
+                    }
+                }
+            }
+            return [bAll, bCoords[0], bCoords[1]];
+        }
+
+        /**
+         * Recursive backtracking function to find an acceptable (valid and complete) Sudoku grid.
+         * Modifies the global T array.
+         * @returns {boolean} True if an acceptable grid is found, false otherwise.
+         */
+        function _findAcceptableGrid() {
+            var i;
+            var [all, y, x] = bestHypothesis(T); // Find cell with fewest options
+
+            if (y == 9) return true; // All cells filled, grid is complete and valid
+            if (all.length == 0) return false; // No allowed numbers for a cell, invalid path
+
+            all = shuffle(all); // Randomize order of allowed numbers to get different grids
+
+            for (i = 0; i < all.length; i++) {
+                T[y][x] = all[i]; // Try placing a number
+                if (_findAcceptableGrid()) return true; // Recurse: if successful, propagate true
+            }
+            T[y][x] = 0; // Backtrack: if no number works, reset cell and return false
+            return false;
+        }
+
+        /**
+         * Initializes the global T array to an empty grid and then calls _findAcceptableGrid
+         * to generate a full, valid Sudoku solution. Stores this solution in Tsol.
+         */
+        function findAcceptableGrid() {
+            var i, j;
+            for (i = 0; i < 9; i++) { for (j = 0; j < 9; j++) T[i][j] = 0; } // Clear T
+            while (_findAcceptableGrid() != true) {
+                for (i = 0; i < 9; i++) { for (j = 0; j < 9; j++) T[i][j] = 0; } // Retry if failed
+            }
+            for (i = 0; i < 9; i++) { for (j = 0; j < 9; j++) Tsol[i][j] = T[i][j]; } // Store solution
+        }
+
+        /**
+         * Recursive function to determine the validity class of a Sudoku grid (number of solutions).
+         * -1: Invalid grid (no solutions)
+         * -2: Multiple solutions
+         * >=0: Number of ways to fill the next cell if only one solution exists (used for difficulty)
+         * @param {Array<Array<number>>} A The current Sudoku grid to check.
+         * @param {number} n (Unused in original, but typically for tracking depth/solutions)
+         * @returns {number} The validity class.
+         */
+        function _findValidityClass(A, n) {
+            var i, r;
+            var sol = -1; // -1: no solution, -2: multiple solutions, >=0: unique solution
+            var [all, y, x] = bestHypothesis(A);
+
+            if (y == 9) return 1; // Grid is full and valid (one solution found)
+            if (all.length == 0) return -1; // Invalid grid (no valid number for a cell)
+
+            for (i = 0; i < all.length; i++) {
+                A[y][x] = all[i]; // Try placing a number
+                r = _findValidityClass(A, n); // Recurse
+                A[y][x] = 0; // Backtrack
+
+                if (r >= 0) { // If a solution path was found
+                    if (sol >= 0) return -2; // If another solution was already found, it's multiple
+                    sol = all.length * r; // Combine validity scores (original logic for difficulty)
+                } else if (r == -2) return -2; // Propagate multiple solutions up
+            }
+            return sol;
+        }
+
+        /**
+         * Generates a random Sudoku puzzle by removing numbers from a solved grid.
+         * The difficulty (nlevel) influences how many numbers are initially removed.
+         * It attempts to maintain a unique solution.
+         * @param {number} nlevel The desired difficulty level (higher means more empty cells).
+         * @returns {number} The final validity score (lower is harder).
+         */
+        function _getRandomGrid2(nlevel) {
+            var i, j, v, y1, x1, y2, x2, s;
+            var sc = -2; // Score of the current grid (lower is harder, -2 for multiple solutions)
+            var zeros = []; // List of coordinates of empty cells
+            var kept = []; // List of coordinates of filled cells
+
+            // Initialize kept with all cells
+            for (i = 0; i < 9; i++) { for (j = 0; j < 9; j++) kept.push([i, j]); }
+
+            findAcceptableGrid(); // Generate a full, solved grid (T and Tsol)
+
+            for (i = 0; i < nlevel; i++) {
+                // Step 1: Try to remove a random cell
+                j = Math.floor(Math.random() * kept.length);
+                y1 = kept[j][0]; x1 = kept[j][1];
+                T[y1][x1] = 0; // Temporarily remove the number
+
+                v = _findValidityClass(T, 0); // Check if the grid still has a unique solution
+                if (v < 0) { // If it has no solution or multiple solutions
+                    T[y1][x1] = Tsol[y1][x1]; // Restore the number
+                } else { // If it still has a unique solution
+                    sc = v; // Update score
+                    zeros.push([y1, x1]); // Add to empty cells list
+                    kept[j] = kept[kept.length - 1]; // Remove from kept list
+                    kept.pop();
+                }
+
+                // Step 2: Try to swap an empty cell with a filled cell to optimize difficulty
+                if (zeros.length > 0 && kept.length > 0) {
+                    j = Math.floor(Math.random() * kept.length);
+                    y1 = kept[j][0]; x1 = kept[j][1]; // A random kept cell
+
+                    s = Math.floor(Math.random() * zeros.length);
+                    y2 = zeros[s][0]; x2 = zeros[s][1]; // A random zero cell
+
+                    T[y1][x1] = 0; // Temporarily remove from kept
+                    T[y2][x2] = Tsol[y2][x2]; // Temporarily restore from zeros
+
+                    v = _findValidityClass(T, 0); // Check validity of the new configuration
+                    if (v < sc) { // If the new configuration is 'easier' (higher score)
+                        T[y1][x1] = Tsol[y1][x1]; // Revert kept cell
+                        T[y2][x2] = 0; // Revert zero cell
+                    } else { // If the new configuration is 'harder' or same (lower score)
+                        sc = v; // Update score
+                        zeros[s] = [y1, x1]; // Update zeros list
+                        kept[j] = [y2, x2]; // Update kept list
+                    }
+                }
+            }
+            return sc;
+        }
+
+        /**
+         * Finalizes the grid generation after _getRandomGrid2.
+         * Sets cell clickable status and hides the loading popup.
+         * @param {number} nlevel The difficulty level used for generation.
+         */
+        function _getRandomGrid(nlevel) {
+            console.log("Generated grid score:", _getRandomGrid2(nlevel));
+            updateGrid(); // Update the displayed grid
+
+            // Set clickable status for cells
+            for (i = 0; i < 9; i++) {
+                for (j = 0; j < 9; j++) {
+                    if (T[i][j] == 0) Tref[i][j].setAttribute("clickable", 1); // Empty cells are clickable
+                    else Tref[i][j].setAttribute("clickable", 0); // Pre-filled cells are not
+                }
+            }
+            $("#waiting").popup("close"); // Close the loading popup
+            hyp = false; // Reset hypothesis mode
+            // Reset button colors
+            const but1 = document.getElementById("but1");
+            const but2 = document.getElementById("but2");
+            const but3 = document.getElementById("but3");
+            if (but1) but1.style.color = "#000";
+            if (but2) but2.style.color = "#B8B8B8";
+            if (but3) but3.style.color = "#B8B8B8";
+        }
+
+        /**
+         * Displays the loading popup and then initiates grid generation.
+         * @param {number} nlevel The difficulty level.
+         */
+        function getRandomGrid(nlevel) {
+            $("#waiting").popup("open"); // Open the loading popup
+            setTimeout(function() { _getRandomGrid(nlevel); }, 0); // Call generation after a short delay
+        }
+
+        /**
+         * Deselects the current cell and hides the digit input panel.
+         */
+        function elsewhere() {
+            Tref[curY][curX].style.backgroundColor = ""; // Clear selected cell background
+            const digitsPanel = document.getElementById("digits");
+            const buttonsPanel = document.getElementById("buttons1");
+            if (digitsPanel) digitsPanel.style.display = "none";
+            if (buttonsPanel) buttonsPanel.style.display = "inline-flex";
+        }
+
+        /**
+         * Handles a click event on a Sudoku cell.
+         * If the cell is clickable, it highlights it and shows the digit input panel.
+         * Attaches click handlers to digit buttons based on allowed numbers.
+         * @param {HTMLElement} cell The clicked table cell element.
+         */
+        function clickCell(cell) {
+            var c = Number(cell.getAttribute("clickable"));
+            if (c == 1) { // Only if the cell is user-editable
+                var y = Number(cell.getAttribute("y"));
+                var x = Number(cell.getAttribute("x"));
+
+                Tref[curY][curX].style.backgroundColor = ""; // Clear previous selection
+                $("#digits").off("click", "**"); // Remove all previous digit button click handlers
+
+                curY = y;
+                curX = x;
+                cell.style.backgroundColor = "#CBD5E0"; // Highlight current cell
+
+                const digitsPanel = document.getElementById("digits");
+                const buttonsPanel = document.getElementById("buttons1");
+                if (digitsPanel) digitsPanel.style.display = "flex"; // Show digit panel
+                if (buttonsPanel) buttonsPanel.style.display = "none"; // Hide main buttons
+
+                var a = allowed(T, y, x); // Get allowed numbers for the selected cell
+                var d = new Array(10).fill(false); // Array to track which digits are allowed (0-9)
+                for (i = 0; i < a.length; i++) d[a[i]] = true;
+                d[0] = true; // Always allow clearing (digit 0)
+
+                for (i = 0; i < 10; i++) {
+                    const digitButton = digits[i];
+                    if (!digitButton) {
+                        console.error("Error: Digit button 'digit-" + String(i) + "' is null in clickCell.");
+                        continue; // Skip to next iteration if button is null
+                    }
+                    if (d[i]) { // If the digit is allowed for this cell
+                        let v = i;
+                        let col = (hyp) ? col2 : col1; // Use hypothesis color or normal color
+                        let h = hyp; // Capture current hypothesis state
+
+                        digitButton.style.color = col;
+                        digitButton.style.borderColor = col;
+                        digitButton.classList.remove('disabled'); // Enable button
+                        digitButton.style.cursor = "pointer";
+
+                        // Attach click handler for this digit button
+                        $(digitButton).on("click", function(e) {
+                            T[y][x] = v; // Update game board
+                            setCell(y, x, v); // Update cell display
+                            Tref[y][x].style.color = col; // Set cell text color
+                            if (h) hyps.push(Tref[y][x]); // If in hypothesis mode, add to list
+                            else {
+                                // If not hypothesis, ensure previous hypothesis colors are removed
+                                // This is a simple approach; a more robust solution might track cell states
+                                Tref[y][x].style.color = col1; // Default to normal color if not hypothesis
+                            }
+                            elsewhere(); // Deselect cell and hide digits
+                            e.stopPropagation(); // Prevent event bubbling
+                        });
+                    } else { // If the digit is NOT allowed
+                        digitButton.style.color = "#B8B8B8";
+                        digitButton.style.borderColor = "#B8B8B8";
+                        digitButton.classList.add('disabled'); // Visually disable button
+                        digitButton.style.cursor = "not-allowed";
+                    }
+                }
+            } else {
+                elsewhere(); // If not clickable, just deselect
+            }
+        }
+
+        /**
+         * Activates hypothesis mode, changing button colors.
+         */
+        function hypothesis1() {
+            if (!hyp) {
+                const but1 = document.getElementById("but1");
+                const but2 = document.getElementById("but2");
+                const but3 = document.getElementById("but3");
+                if (but1) but1.style.color = "#B8B8B8"; // Grey out Hypothesis button
+                if (but2) but2.style.color = "#000"; // Activate Keep Hyp.
+                if (but3) but3.style.color = "#000"; // Activate Clear Hyp.
+                hyp = true;
+            }
+        }
+
+        /**
+         * Converts all current hypothesis entries to normal entries (changes their color).
+         * Resets hypothesis mode.
+         */
+        function hypothesis2() {
+            var i;
+            for (i = 0; i < hyps.length; i++) hyps[i].style.color = col1; // Change color to normal
+            hyps = []; // Clear hypothesis list
+            hyp = false; // Exit hypothesis mode
+            // Reset button colors
+            const but1 = document.getElementById("but1");
+            const but2 = document.getElementById("but2");
+            const but3 = document.getElementById("but3");
+            if (but1) but1.style.color = "#000";
+            if (but2) but2.style.color = "#B8B8B8";
+            if (but3) but3.style.color = "#B8B8B8";
+        }
+
+        /**
+         * Clears all current hypothesis entries from the grid and resets hypothesis mode.
+         */
+        function hypothesis3() {
+            var i;
+            for (i = 0; i < hyps.length; i++) {
+                hyps[i].innerHTML = ""; // Clear cell display
+                var y = Number(hyps[i].getAttribute("y"));
+                var x = Number(hyps[i].getAttribute("x"));
+                T[y][x] = 0; // Clear cell in game board
+            }
+            hyps = []; // Clear hypothesis list
+            hyp = false; // Exit hypothesis mode
+            // Reset button colors
+            const but1 = document.getElementById("but1");
+            const but2 = document.getElementById("but2");
+            const but3 = document.getElementById("but3");
+            if (but1) but1.style.color = "#000";
+            if (but2) but2.style.color = "#B8B8B8";
+            if (but3) but3.style.color = "#B8B8B8";
+        }
+
+        /**
+         * Restarts the current game by clearing all user-entered numbers.
+         */
+        function restart() {
+            var i, j;
+            for (i = 0; i < 9; i++) {
+                for (j = 0; j < 9; j++) {
+                    // Only clear cells that were initially clickable (user-editable)
+                    if (Number(Tref[i][j].getAttribute("clickable")) == 1) {
+                        T[i][j] = 0; // Clear in game board
+                        setCell(i, j, 0); // Clear display
+                        Tref[i][j].style.color = ''; // Reset color
+                        Tref[i][j].style.backgroundColor = ''; // Reset background
+                    }
+                }
+            }
+            hyps = []; // Clear any active hypotheses
+            hyp = false; // Exit hypothesis mode
+            // Reset button colors
+            const but1 = document.getElementById("but1");
+            const but2 = document.getElementById("but2");
+            const but3 = document.getElementById("but3");
+            if (but1) but1.style.color = "#000";
+            if (but2) but2.style.color = "#B8B8B8";
+            if (but3) but3.style.color = "#B8B8B8";
+        }
+
+        /**
+         * Starts a new random game with the specified difficulty level.
+         * @param {number} nlevel The difficulty level.
+         */
+        function newRandomGrid(nlevel) {
+            $("#newGrid").popup("close"); // Close difficulty selection popup
+            setTimeout(function() { getRandomGrid(nlevel); }, 250); // Start new game after delay
+        }
+
+        /**
+         * Solves the current Sudoku puzzle by filling in all empty cells with the solution.
+         * Highlights incorrect user entries.
+         */
+        function solve() {
+            var i, j;
+            for (i = 0; i < 9; i++) {
+                for (j = 0; j < 9; j++) {
+                    if (T[i][j] == 0) { // If cell is empty
+                        T[i][j] = Tsol[i][j]; // Fill with solution
+                        setCell(i, j, T[i][j]); // Update display
+                        Tref[i][j].style.color = "#B8B8B8"; // Grey out solved cells
+                    } else if (T[i][j] != Tsol[i][j]) { // If user entry is incorrect
+                        T[i][j] = Tsol[i][j]; // Correct it to solution
+                        setCell(i, j, T[i][j]); // Update display
+                        Tref[i][j].style.color = "#B8B8B8"; // Grey out corrected cells
+                        Tref[i][j].style.backgroundColor = "#FBB"; // Highlight incorrect cells in red
+                    }
+                    // For cells that were originally part of the puzzle (clickable=0), ensure their color is default
+                    if (Number(Tref[i][j].getAttribute("clickable")) == 0) {
+                        Tref[i][j].style.color = "#334155"; /* Darker color for fixed numbers */
+                    }
+                }
+            }
+            hyps = []; // Clear any active hypotheses
+            hyp = false; // Exit hypothesis mode
+            // Reset button colors
+            const but1 = document.getElementById("but1");
+            const but2 = document.getElementById("but2");
+            const but3 = document.getElementById("but3");
+            if (but1) but1.style.color = "#000";
+            if (but2) but2.style.color = "#B8B8B8";
+            if (but3) but3.style.color = "#B8B8B8";
+        }
+
+        /**
+         * Checks the current user entries against the solution and highlights incorrect ones.
+         */
+        function check() {
+            var i, j;
+            for (i = 0; i < 9; i++) {
+                for (j = 0; j < 9; j++) {
+                    // Only check user-entered cells (clickable=1) that are not empty
+                    if (Number(Tref[i][j].getAttribute("clickable")) == 1 && T[i][j] != 0) {
+                        if (T[i][j] != Tsol[i][j]) {
+                            Tref[i][j].style.backgroundColor = "#FBB"; // Highlight incorrect in red
+                        } else {
+                            Tref[i][j].style.backgroundColor = "#D1FAE5"; // Highlight correct in light green
+                        }
+                    } else if (Number(Tref[i][j].getAttribute("clickable")) == 1 && T[i][j] == 0) {
+                        // If it's an empty user cell, ensure no background color from previous checks
+                        Tref[i][j].style.backgroundColor = '';
+                    }
+                }
+            }
+        }
+
+        // Initialize the game when the window loads
+        window.onload = function() {
+            console.log("window.onload fired.");
+            const introPage = document.getElementById('intro-page');
+            const gameContainer = document.getElementById('game-container');
+            const startGameButton = document.getElementById('start-game-button');
+
+            if (!introPage || !gameContainer || !startGameButton) {
+                console.error("One or more essential elements (introPage, gameContainer, or startGameButton) not found. Cannot proceed with game setup.");
+                return;
+            }
+
+            // Ensure game container starts hidden and intro page is visible
+            gameContainer.style.display = 'none'; // Hide game container
+            introPage.style.display = 'flex';    // Show intro page
+            console.log("Initial state: game-container display:", gameContainer.style.display, "intro-page display:", introPage.style.display);
+
+            // Add event listener for the "Start Game" button
+            startGameButton.addEventListener('click', function() {
+                console.log("Start Game button clicked!");
+
+                // Hide intro page and show game container
+                introPage.style.display = 'none';
+                gameContainer.style.display = 'flex';
+                console.log("After click: intro-page display:", introPage.style.display);
+                console.log("After click: game-container display:", gameContainer.style.display);
+
+                // Call init() after a small delay to ensure DOM reflow for visibility
+                setTimeout(() => {
+                    try {
+                        init(); // Initialize the game grid and elements
+                        console.log("Game initialization attempted after button click.");
+                    } catch (error) {
+                        console.error("Error during game initialization after button click:", error);
+                    }
+                }, 50); // Small delay
+            });
+        };
+    </script>
+</body>
+</html>
+
+    
