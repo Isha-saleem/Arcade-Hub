@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ping Pong Game</title>
+    <style>
+        /* Import the Inter font from Google Fonts */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+
+        body {
+            margin: 0;
+            overflow: hidden; /* Prevent scrollbars */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh; /* Full viewport height */
+            background-color: #1a202c; /* Dark background color */
+            font-family: 'Inter', sans-serif; /* Apply Inter font */
+            color: #e2e8f0; /* Light text color */
+            box-sizing: border-box; /* Include padding and border in element's total width and height */
+        }
+
+        #game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #2d3748; /* Slightly lighter dark background for container */
+            border-radius: 15px; /* Rounded corners for the container */
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5); /* Deep shadow for depth */
+            padding: 20px;
+            max-width: 90vw; /* Max width relative to viewport width */
+            width: 900px; /* Increased base width for larger screens */
+            height: 600px; /* Added base height for larger screens */
+            box-sizing: border-box;
+            position: relative; /* Needed for absolute positioning of home/how-to */
+        }
+
+        #gameCanvas {
+            background-color: #1a202c; /* Canvas background color */
+            display: block; /* Remove extra space below canvas */
+            border-radius: 8px; /* Rounded corners for the canvas */
+            border: 2px solid #4a5568; /* Border around canvas */
+            touch-action: none; /* Disable default browser touch gestures like scrolling/zooming */
+            width: 100%; /* Make canvas responsive to its container */
+            height: calc(100% - 120px); /* Adjust height to accommodate scoreboard and controls */
+            max-height: 70vh; /* Limit canvas height on smaller screens */
+        }
+
+        #scoreBoard {
+            display: flex;
+            justify-content: space-around; /* Distribute space evenly */
+            width: 100%;
+            margin-bottom: 15px;
+            font-size: 2.5em; /* Large font size for scores */
+            font-weight: 700; /* Bold font weight */
+            color: #e2e8f0; /* Light text color */
+            z-index: 1; /* Ensure it's above other elements if they overlap */
+        }
+
+        #messageBox, #homeScreen, #howToPlayScreen {
+            position: absolute; /* Positioned relative to game-container */
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9); /* Semi-transparent dark background */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.7);
+            text-align: center;
+            font-size: 1.5em;
+            font-weight: 700;
+            color: #a0aec0;
+            z-index: 1000;
+            box-sizing: border-box;
+        }
+
+        #homeScreen h1, #howToPlayScreen h1 {
+            color: #4299e1;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+
+        #homeScreen button, #howToPlayScreen button, #messageBox button {
+            background-color: #4299e1; /* Blue button color */
+            color: white; /* White text */
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px; /* Rounded button corners */
+            font-size: 0.9em;
+            font-weight: 700;
+            cursor: pointer; /* Pointer cursor on hover */
+            margin: 10px; /* Adjusted margin for multiple buttons */
+            transition: background-color 0.3s ease, transform 0.2s ease; /* Smooth transitions */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3); /* Button shadow */
+        }
+
+        #homeScreen button:hover, #howToPlayScreen button:hover, #messageBox button:hover {
+            background-color: #3182ce; /* Darker blue on hover */
+            transform: translateY(-2px); /* Slight lift effect */
+        }
+
+        #homeScreen button:active, #howToPlayScreen button:active, #messageBox button:active {
+            transform: translateY(0); /* Reset position on click */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Smaller shadow on click */
+        }
+
+        #howToPlayScreen p {
+            font-size: 1.1em;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            max-width: 600px;
+        }
+
+        #controls {
+            display: flex;
+            justify-content: center; /* Center buttons */
+            gap: 20px; /* Space between buttons */
+            margin-top: 20px;
+            width: 100%;
+            z-index: 1; /* Ensure it's above other elements if they overlap */
+        }
+
+        .control-button {
+            background-color: #48bb78; /* Green for start button */
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .control-button.reset {
+            background-color: #e53e3e; /* Red for reset button */
+        }
+
+        .control-button.home {
+            background-color: #63b3ed; /* Light blue for home button */
+        }
+
+        .control-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.4);
+        }
+
+        .control-button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Responsive adjustments for smaller screens */
+        @media (max-width: 768px) {
+            #game-container {
+                padding: 15px;
+                width: 95vw; /* Wider on smaller screens */
+                height: 80vh; /* Adjust height for smaller screens */
+            }
+
+            #scoreBoard {
+                font-size: 2em; /* Smaller font for scores */
+                margin-bottom: 10px;
+            }
+
+            #messageBox, #homeScreen, #howToPlayScreen {
+                padding: 20px 30px;
+                font-size: 1.2em;
+            }
+
+            #messageBox button, #homeScreen button, #howToPlayScreen button {
+                padding: 10px 20px;
+                font-size: 0.8em;
+            }
+
+            .control-button {
+                padding: 10px 20px;
+                font-size: 1em;
+            }
+
+            #controls {
+                flex-direction: column; /* Stack buttons vertically */
+                gap: 10px;
+            }
+
+            #homeScreen h1, #howToPlayScreen h1 {
+                font-size: 2em;
+            }
+        }
+
+        @media (max-width: 480px) {
+            #scoreBoard {
+                font-size: 1.5em;
+            }
+            #messageBox, #homeScreen, #howToPlayScreen {
+                font-size: 1em;
+            }
+            .control-button {
+                font-size: 0.9em;
+            }
+            #homeScreen h1, #howToPlayScreen h1 {
+                font-size: 1.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="homeScreen">
+            <h1>Ping Pong</h1>
+            <button id="howToPlayButton">How to Play</button>
+            <button id="playWithAIButton">Play with AI</button>
+            <button id="playWithPlayerButton">Play with Player</button>
+        </div>
+
+        <div id="howToPlayScreen" style="display: none;">
+            <h1>How to Play</h1>
+            <p><strong>Player 1 (Left Paddle):</strong> Use the <strong>'W'</strong> key to move up and the <strong>'S'</strong> key to move down.</p>
+            <p><strong>Player 2 (Right Paddle):</strong> Use the <strong>'ArrowUp'</strong> key to move up and the <strong>'ArrowDown'</strong> key to move down.</p>
+            <p>The first player to reach <strong>5 points</strong> wins the game.</p>
+            <button id="backToHomeButton">Back to Home</button>
+        </div>
+
+        <div id="scoreBoard" style="display: none;">
+            <span id="player1Score">0</span>
+            <span>-</span>
+            <span id="player2Score">0</span>
+        </div>
+        <canvas id="gameCanvas" style="display: none;"></canvas>
+        <div id="controls" style="display: none;">
+            <button id="startButton" class="control-button">Start Game</button>
+            <button id="resetButton" class="control-button reset">Reset Game</button>
+            <button id="homeButton" class="control-button home">Home</button>
+        </div>
+    </div>
+
+    <div id="messageBox" style="display: none;">
+        <p id="messageText"></p>
+        <button id="messageButton">OK</button>
+    </div>
+
+    <script>
+        // Get the canvas element and its 2D rendering context
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Get score display elements
+        const player1ScoreDisplay = document.getElementById('player1Score');
+        const player2ScoreDisplay = document.getElementById('player2Score');
+
+        // Get control buttons
+        const startButton = document.getElementById('startButton');
+        const resetButton = document.getElementById('resetButton');
+        const homeButton = document.getElementById('homeButton'); // New: Home button
+
+        // Get message box elements
+        const messageBox = document.getElementById('messageBox');
+        const messageText = document.getElementById('messageText');
+        const messageButton = document.getElementById('messageButton');
+
+        // Home screen elements
+        const homeScreen = document.getElementById('homeScreen');
+        const howToPlayButton = document.getElementById('howToPlayButton');
+        const playWithAIButton = document.getElementById('playWithAIButton');
+        const playWithPlayerButton = document.getElementById('playWithPlayerButton');
+
+        // How to play screen elements
+        const howToPlayScreen = document.getElementById('howToPlayScreen');
+        const backToHomeButton = document.getElementById('backToHomeButton');
+
+        // Game container elements to toggle visibility
+        const scoreBoard = document.getElementById('scoreBoard');
+        const controls = document.getElementById('controls');
+
+
+        // Game variables
+        const paddleWidth = 15; // Width of the paddles
+        const paddleHeight = 100; // Height of the paddles
+        const ballSize = 15; // Size of the ball (it's a square)
+        const winningScore = 5; // Score needed to win the game
+
+        let player1Y = 0; // Y-position of player 1's paddle
+        let player2Y = 0; // Y-position of player 2's paddle
+        let ballX = 0; // X-position of the ball
+        let ballY = 0; // Y-position of the ball
+        let ballSpeedX = 0; // Horizontal speed of the ball
+        let ballSpeedY = 0; // Vertical speed of the ball
+        let player1Score = 0; // Player 1's score
+        let player2Score = 0; // Player 2's score
+        let gameRunning = false; // Flag to indicate if the game is running
+        let gameInterval; // Variable to hold the animation frame ID
+        let keysPressed = {}; // Object to track currently pressed keys
+        let gameMode = ''; // 'AI' or 'Player'
+
+        // Variables for touch controls
+        let touchStartY = 0;
+        let activePaddle = null; // To track which paddle is being touched
+
+        /**
+         * Initializes the canvas dimensions based on its container.
+         * This ensures responsiveness.
+         */
+        function resizeCanvas() {
+            // Set canvas width and height to match its CSS dimensions
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            // Recalculate paddle and ball positions to fit the new canvas size
+            resetGameElements();
+            drawGame(); // Redraw the game elements
+        }
+
+        /**
+         * Resets the positions of game elements (paddles and ball)
+         * to their initial states, typically called on game start or resize.
+         */
+        function resetGameElements() {
+            player1Y = canvas.height / 2 - paddleHeight / 2; // Center player 1 paddle
+            player2Y = canvas.height / 2 - paddleHeight / 2; // Center player 2 paddle
+            resetBall(); // Reset ball position and speed
+        }
+
+        /**
+         * Resets the ball to the center of the canvas and gives it a random initial direction.
+         */
+        function resetBall() {
+            ballX = canvas.width / 2; // Center ball horizontally
+            ballY = canvas.height / 2; // Center ball vertically
+
+            // Randomize initial horizontal direction (-1 for left, 1 for right)
+            ballSpeedX = (Math.random() > 0.5 ? 1 : -1) * 5; // Initial horizontal speed
+            // Randomize initial vertical direction and speed
+            ballSpeedY = (Math.random() * 2 - 1) * 5; // Between -5 and 5
+        }
+
+        /**
+         * Draws a rectangle on the canvas. Used for paddles and the ball.
+         * @param {number} x - The x-coordinate of the rectangle's top-left corner.
+         * @param {number} y - The y-coordinate of the rectangle's top-left corner.
+         * @param {number} width - The width of the rectangle.
+         * @param {number} height - The height of the rectangle.
+         * @param {string} color - The color of the rectangle.
+         */
+        function drawRect(x, y, width, height, color) {
+            ctx.fillStyle = color;
+            ctx.fillRect(x, y, width, height);
+        }
+
+        /**
+         * Draws all game elements on the canvas: background, paddles, ball, and scores.
+         */
+        function drawGame() {
+            // Clear the canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw center line (dashed)
+            for (let i = 0; i < canvas.height; i += 20) {
+                drawRect(canvas.width / 2 - 1, i, 2, 10, '#4a5568'); // Grey dashed line
+            }
+
+            // Draw player 1's paddle (left)
+            drawRect(0, player1Y, paddleWidth, paddleHeight, '#4299e1'); // Blue paddle
+
+            // Draw player 2's paddle (right)
+            drawRect(canvas.width - paddleWidth, player2Y, paddleWidth, paddleHeight, '#e53e3e'); // Red paddle
+
+            // Draw the ball
+            drawRect(ballX - ballSize / 2, ballY - ballSize / 2, ballSize, ballSize, '#ecc94b'); // Yellow ball
+        }
+
+        /**
+         * Updates the game state, including ball movement, collisions, and scoring.
+         */
+        function update() {
+            // Move the ball
+            ballX += ballSpeedX;
+            ballY += ballSpeedY;
+
+            // Ball collision with top/bottom walls
+            if (ballY + ballSize / 2 > canvas.height || ballY - ballSize / 2 < 0) {
+                ballSpeedY *= -1; // Reverse vertical direction
+            }
+
+            // Ball collision with paddles or scoring
+            if (ballX - ballSize / 2 < paddleWidth) { // Ball is near player 1's paddle (left side)
+                if (ballY > player1Y && ballY < player1Y + paddleHeight) {
+                    // Collision with player 1's paddle
+                    ballSpeedX *= -1; // Reverse horizontal direction
+                    // Adjust ball's vertical speed based on where it hit the paddle
+                    let deltaY = ballY - (player1Y + paddleHeight / 2);
+                    ballSpeedY = deltaY * 0.35; // Make it bounce more vertically if hit near edges
+                } else {
+                    // Ball missed player 1's paddle - Player 2 scores
+                    player2Score++;
+                    player2ScoreDisplay.textContent = player2Score; // Update score display
+                    checkGameOver(); // Check if game has ended
+                    resetBall(); // Reset ball for next round
+                }
+            }
+
+            if (ballX + ballSize / 2 > canvas.width - paddleWidth) { // Ball is near player 2's paddle (right side)
+                if (ballY > player2Y && ballY < player2Y + paddleHeight) {
+                    // Collision with player 2's paddle
+                    ballSpeedX *= -1; // Reverse horizontal direction
+                    // Adjust ball's vertical speed based on where it hit the paddle
+                    let deltaY = ballY - (player2Y + paddleHeight / 2);
+                    ballSpeedY = deltaY * 0.35;
+                } else {
+                    // Ball missed player 2's paddle - Player 1 scores
+                    player1Score++;
+                    player1ScoreDisplay.textContent = player1Score; // Update score display
+                    checkGameOver(); // Check if game has ended
+                    resetBall(); // Reset ball for next round
+                }
+            }
+
+            movePaddles(); // Update paddle positions based on input
+            if (gameMode === 'AI') {
+                moveAIPaddle();
+            }
+        }
+
+        /**
+         * Moves the paddles based on keyboard input.
+         * 'W' and 'S' for Player 1, 'ArrowUp' and 'ArrowDown' for Player 2.
+         */
+        function movePaddles() {
+            const paddleSpeed = 8; // Speed at which paddles move
+
+            // Player 1 (left paddle)
+            if (keysPressed['w']) {
+                player1Y -= paddleSpeed;
+            }
+            if (keysPressed['s']) {
+                player1Y += paddleSpeed;
+            }
+
+            // Player 2 (right paddle) - Only if gameMode is 'Player'
+            if (gameMode === 'Player') {
+                if (keysPressed['arrowup']) { // Corrected key check
+                    player2Y -= paddleSpeed;
+                }
+                if (keysPressed['arrowdown']) { // Corrected key check
+                    player2Y += paddleSpeed;
+                }
+            }
+
+
+            // Keep paddles within canvas bounds
+            player1Y = Math.max(0, Math.min(canvas.height - paddleHeight, player1Y));
+            player2Y = Math.max(0, Math.min(canvas.height - paddleHeight, player2Y));
+        }
+
+        /**
+         * Controls the AI paddle's movement.
+         */
+        function moveAIPaddle() {
+            const aiSpeed = 5; // AI paddle speed
+
+            // Move AI paddle towards the ball's Y position
+            if (player2Y + paddleHeight / 2 < ballY) {
+                player2Y += aiSpeed;
+            } else if (player2Y + paddleHeight / 2 > ballY) {
+                player2Y -= aiSpeed;
+            }
+
+            // Keep AI paddle within canvas bounds
+            player2Y = Math.max(0, Math.min(canvas.height - paddleHeight, player2Y));
+        }
+
+
+        /**
+         * Checks if either player has reached the winning score and ends the game.
+         */
+        function checkGameOver() {
+            if (player1Score >= winningScore) {
+                endGame("Player 1 Wins!");
+            } else if (player2Score >= winningScore) {
+                if (gameMode === 'AI') {
+                    endGame("AI Wins!");
+                } else {
+                    endGame("Player 2 Wins!");
+                }
+            }
+        }
+
+        /**
+         * Displays a message box with the given text and an optional button.
+         * @param {string} message - The text to display in the message box.
+         * @param {boolean} showButton - Whether to show the 'OK' button.
+         */
+        function showMessage(message, showButton = true) {
+            messageText.textContent = message;
+            messageButton.style.display = showButton ? 'block' : 'none';
+            messageBox.style.display = 'flex'; // Use flex to center content
+        }
+
+        /**
+         * Hides the message box.
+         */
+        function hideMessage() {
+            messageBox.style.display = 'none';
+        }
+
+        /**
+         * The main game loop, called repeatedly using requestAnimationFrame.
+         * Updates game state and redraws the canvas.
+         */
+        function gameLoop() {
+            if (gameRunning) {
+                update();
+                drawGame();
+                gameInterval = requestAnimationFrame(gameLoop); // Continue the loop
+            }
+        }
+
+        /**
+         * Starts the game: initializes scores, resets elements, and begins the game loop.
+         */
+        function startGame() {
+            if (!gameRunning) {
+                hideMessage(); // Hide any existing messages
+                player1Score = 0;
+                player2Score = 0;
+                player1ScoreDisplay.textContent = player1Score;
+                player2ScoreDisplay.textContent = player2Score;
+                resetGameElements(); // Reset positions
+                gameRunning = true; // Set game state to running
+                gameLoop(); // Start the animation loop
+            }
+        }
+
+        /**
+         * Resets the game: stops the current game, resets scores, and prepares for a new game.
+         */
+        function resetGame() {
+            cancelAnimationFrame(gameInterval); // Stop the current animation loop
+            gameRunning = false; // Set game state to not running
+            player1Score = 0;
+            player2Score = 0;
+            player1ScoreDisplay.textContent = player1Score;
+            player2ScoreDisplay.textContent = player2Score;
+            resetGameElements(); // Reset positions
+            drawGame(); // Draw the initial state
+            showMessage("Game Reset! Press 'Start Game' to play.", true); // Show reset message
+        }
+
+        /**
+         * Ends the game, stops the loop, and displays a game over message.
+         * @param {string} message - The game over message to display.
+         */
+        function endGame(message) {
+            cancelAnimationFrame(gameInterval); // Stop the animation loop
+            gameRunning = false; // Set game state to not running
+            showMessage(message + " Press 'Reset Game' to play again.", true); // Show game over message
+        }
+
+        /**
+         * Shows the game elements and hides the home/how-to screens.
+         */
+        function showGame() {
+            homeScreen.style.display = 'none';
+            howToPlayScreen.style.display = 'none';
+            scoreBoard.style.display = 'flex';
+            canvas.style.display = 'block';
+            controls.style.display = 'flex';
+            resizeCanvas(); // Ensure canvas is sized correctly
+            drawGame(); // Draw initial game state
+        }
+
+        /**
+         * Shows the home screen and hides game/how-to screens.
+         */
+        function showHomeScreen() {
+            homeScreen.style.display = 'flex';
+            howToPlayScreen.style.display = 'none';
+            scoreBoard.style.display = 'none';
+            canvas.style.display = 'none';
+            controls.style.display = 'none';
+            hideMessage(); // Hide any active message box
+            cancelAnimationFrame(gameInterval); // Ensure game loop is stopped
+            gameRunning = false;
+        }
+
+        // --- Event Listeners ---
+
+        // Keyboard input for paddle movement
+        document.addEventListener('keydown', (e) => {
+            // Ensure proper key names are used
+            keysPressed[e.key.toLowerCase()] = true; // Mark key as pressed
+        });
+
+        document.addEventListener('keyup', (e) => {
+            keysPressed[e.key.toLowerCase()] = false; // Mark key as released
+        });
+
+        // Touch input for paddle movement (simplified for two players on one screen)
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // Prevent scrolling/zooming
+            if (e.touches.length > 0) {
+                // Determine which paddle is being touched based on X position
+                const touchX = e.touches[0].clientX - canvas.getBoundingClientRect().left;
+                if (touchX < canvas.width / 2) {
+                    activePaddle = 'player1';
+                    touchStartY = e.touches[0].clientY - player1Y;
+                } else if (gameMode === 'Player') { // Only allow touch for player 2 if not AI
+                    activePaddle = 'player2';
+                    touchStartY = e.touches[0].clientY - player2Y;
+                }
+            }
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault(); // Prevent scrolling/zooming
+            if (gameRunning && e.touches.length > 0 && activePaddle) {
+                const touchY = e.touches[0].clientY - canvas.getBoundingClientRect().top;
+                let newPaddleY = touchY - touchStartY;
+
+                if (activePaddle === 'player1') {
+                    player1Y = Math.max(0, Math.min(canvas.height - paddleHeight, newPaddleY));
+                } else if (activePaddle === 'player2') {
+                    player2Y = Math.max(0, Math.min(canvas.height - paddleHeight, newPaddleY));
+                }
+            }
+        });
+
+        canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            activePaddle = null; // No paddle is actively being touched
+        });
+
+
+        // Button click listeners
+        startButton.addEventListener('click', startGame);
+        resetButton.addEventListener('click', resetGame);
+        messageButton.addEventListener('click', hideMessage);
+
+        homeButton.addEventListener('click', () => { // New: Home button listener
+            if (gameRunning) {
+                // Optional: You might want to confirm if the user wants to quit the game
+                // before going to home, especially if a game is in progress.
+                // For now, we'll just go to home.
+                cancelAnimationFrame(gameInterval); // Stop the game loop
+                gameRunning = false; // Set game to not running
+            }
+            showHomeScreen(); // Go to the home screen
+        });
+
+        howToPlayButton.addEventListener('click', () => {
+            homeScreen.style.display = 'none';
+            howToPlayScreen.style.display = 'flex';
+        });
+
+        backToHomeButton.addEventListener('click', showHomeScreen);
+
+        playWithAIButton.addEventListener('click', () => {
+            gameMode = 'AI';
+            showGame();
+            showMessage("You are Player 1 (Left). AI is Player 2 (Right). Press 'Start Game' to begin.", true);
+        });
+
+        playWithPlayerButton.addEventListener('click', () => {
+            gameMode = 'Player';
+            showGame();
+            showMessage("Player 1 (Left): W/S. Player 2 (Right): Arrow Up/Down. Press 'Start Game' to begin.", true);
+        });
+
+
+        // Initial setup when the window loads
+        window.onload = function() {
+            showHomeScreen(); // Start on the home screen
+            window.addEventListener('resize', resizeCanvas); // Add event listener for window resize
+        };
+    </script>
+</body>
+</html>

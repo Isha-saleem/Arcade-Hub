@@ -1,0 +1,1355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Word Search Adventure</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* New vibrant color palette based on the image */
+        :root {
+            --bg-body-orange: #F8A73B; /* Main background orange */
+            --bg-container-light: #FFFFFF; /* Main container light background */
+            --text-dark: #334155; /* Dark text for contrast */
+            --text-light: #F9FAFB; /* Light text on dark backgrounds */
+            --border-grid: #D1D5DB; /* Subtle grid border */
+            --shadow-soft: rgba(0, 0, 0, 0.1);
+
+            /* Specific colors for found words, cycling through these */
+            --found-color-1: #E99BC1; /* Pink */
+            --found-color-2: #8CC4DF; /* Light Blue */
+            --found-color-3: #F9C882; /* Orange */
+            --found-color-4: #C28CD6; /* Purple */
+            --found-color-5: #93D08F; /* Green */
+            --found-color-6: #5C86C1; /* Darker Blue */
+            --found-color-7: #C3E387; /* Light Green */
+            --found-color-8: #F7A8D8; /* Another Pink */
+
+            /* Intro page specific colors */
+            --intro-bg-gradient-start: #6D28D9; /* Deep purple */
+            --intro-bg-gradient-end: #F8A73B; /* Orange */
+            --intro-button-bg: #EC4899; /* Bright pink for button */
+            --intro-button-hover: #DB2777; /* Darker pink for button hover */
+
+            /* Category page specific colors */
+            --category-button-bg: #6D28D9; /* Purple */
+            --category-button-hover: #7C3AED; /* Lighter purple */
+            --category-text-color: #FFFFFF; /* White text */
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--intro-bg-gradient-start), var(--intro-bg-gradient-end)); /* Gradient background for body */
+            display: flex;
+            justify-content: center;
+            align-items: center; /* Center vertically for intro page and category page */
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+            color: var(--text-dark);
+            /* overflow: hidden; /* Prevent scroll on intro/category */ */
+        }
+
+        .page-container {
+            background-color: var(--bg-container-light);
+            border-radius: 1.5rem; /* More rounded */
+            box-shadow: 0 15px 40px var(--shadow-soft);
+            max-width: 1000px; /* Increased max-width */
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* For inner borders/shadows */
+            padding: 3rem; /* Default padding for pages */
+            text-align: center;
+            opacity: 1;
+            transform: translateY(0);
+            transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+            position: absolute; /* Allow overlaying for transitions */
+        }
+
+        .page-container.hidden {
+            opacity: 0;
+            transform: translateY(-20px);
+            pointer-events: none; /* Disable interaction when hidden */
+            left: -9999px; /* Move off-screen without affecting flow */
+        }
+
+        .page-container.show {
+            opacity: 1;
+            transform: translateY(0);
+            left: auto; /* Bring back on-screen */
+            position: relative; /* Revert to relative positioning when shown */
+        }
+
+        #intro-page, #category-selection-page {
+            max-width: 600px; /* Specific max-width for intro/category pages */
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        /* Game Page Container (already game-wrapper) */
+        #game-page-container {
+            padding: 0; /* Remove default padding as it's handled by inner divs */
+            max-width: 1000px; /* Max width for the game container */
+            display: none; /* Hidden by default initially */
+        }
+
+        #game-page-container.show {
+            display: flex; /* Display as flex when shown */
+            align-items: flex-start; /* Correct alignment for game content */
+            height: auto; /* Allow height to adjust */
+        }
+
+
+        .intro-title, .category-title {
+            font-family: 'Fredoka One', cursive;
+            font-size: 3.5rem;
+            color: var(--intro-bg-gradient-start); /* Dark purple */
+            text-shadow: 3px 3px 0px rgba(0,0,0,0.1);
+            margin-bottom: 0.5rem;
+            line-height: 1.1;
+        }
+
+        .intro-description {
+            font-size: 1.2rem;
+            color: var(--text-dark);
+            line-height: 1.5;
+            margin-bottom: 1.5rem;
+        }
+
+        .intro-start-button {
+            background-color: var(--intro-button-bg);
+            color: var(--text-light);
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.8rem;
+            padding: 1rem 2.5rem;
+            border-radius: 1rem;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(236, 72, 153, 0.4);
+            transition: all 0.3s ease-out;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .intro-start-button:hover {
+            background-color: var(--intro-button-hover);
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 12px 25px rgba(236, 72, 153, 0.5);
+        }
+
+        .intro-start-button:active {
+            transform: translateY(0);
+            box-shadow: 0 5px 10px rgba(236, 72, 153, 0.3);
+        }
+
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .category-button {
+            background-color: var(--category-button-bg);
+            color: var(--category-text-color);
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.5rem;
+            padding: 1.5rem 1rem;
+            border-radius: 1rem;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 6px 15px rgba(109, 40, 217, 0.3);
+            transition: all 0.3s ease-out;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .category-button:hover {
+            background-color: var(--category-button-hover);
+            transform: translateY(-5px) scale(1.03);
+            box-shadow: 0 10px 20px rgba(109, 40, 217, 0.4);
+        }
+
+        .category-button:active {
+            transform: translateY(0);
+            box-shadow: 0 3px 8px rgba(109, 40, 217, 0.2);
+        }
+
+
+        /* Existing Game Page Styles (adjusted) */
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 2rem;
+            background-color: var(--bg-container-light); /* Header background */
+            border-bottom: 1px solid #E5E7EB; /* Subtle separator */
+            position: relative;
+        }
+
+        .game-header .icon-button {
+            background-color: #F3F4F6; /* Light gray button background */
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.2rem;
+            color: #6B7280;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        h1.game-title {
+            font-family: 'Fredoka One', cursive;
+            font-size: 3rem; /* Larger title */
+            font-weight: 400;
+            color: #4C566A; /* Darker gray for title */
+            text-align: center;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap; /* Prevent wrapping for title */
+        }
+
+        .game-content {
+            display: flex;
+            flex-direction: row; /* Horizontal layout for content */
+            gap: 0; /* No gap as columns have their own padding */
+            background-color: var(--bg-container-light); /* Ensures consistent background */
+        }
+
+        .game-board-area {
+            flex: 1.5; /* Takes more space for the grid */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+            background-color: #FDFDFD; /* Slightly different background for grid area */
+        }
+
+        .game-info-area {
+            flex: 1; /* Takes less space for info */
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            padding: 2rem;
+            background-color: var(--bg-body-orange); /* Orange background for info side */
+            color: var(--text-light); /* Light text on orange background */
+            border-left: 1px solid rgba(255,255,255,0.2); /* Subtle separator */
+        }
+
+        .game-grid {
+            display: grid;
+            border: none; /* No outer border for grid */
+            border-radius: 0.5rem;
+            overflow: hidden;
+            background-color: transparent; /* Cells define their own background */
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08); /* Soft shadow for the grid block */
+        }
+
+        .grid-cell {
+            width: 100%;
+            padding-top: 100%;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.7rem; /* Larger font */
+            font-weight: 700; /* Bolder */
+            color: var(--text-dark);
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.2s ease, color 0.2s ease, transform 0.1s ease;
+            border: 1px solid #e0e0e0; /* Finer cell borders */
+            background-color: #FFFFFF; /* Default white background for cells */
+        }
+        .grid-cell:hover:not(.selected):not(.found) {
+            background-color: #F0F4F8; /* Light gray on hover */
+            transform: scale(1.02); /* Slight scale */
+        }
+
+        .grid-cell span {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .grid-cell.selected {
+            background-color: #CCC; /* General light grey for selection */
+            color: var(--text-dark);
+        }
+        /* Dynamic found word colors */
+        .grid-cell.found-color-1 { background-color: var(--found-color-1); color: var(--text-light); }
+        .grid-cell.found-color-2 { background-color: var(--found-color-2); color: var(--text-light); }
+        .grid-cell.found-color-3 { background-color: var(--found-color-3); color: var(--text-light); }
+        .grid-cell.found-color-4 { background-color: var(--found-color-4); color: var(--text-light); }
+        .grid-cell.found-color-5 { background-color: var(--found-color-5); color: var(--text-light); }
+        .grid-cell.found-color-6 { background-color: var(--found-color-6); color: var(--text-light); }
+        .grid-cell.found-color-7 { background-color: var(--found-color-7); color: var(--text-dark); } /* Dark text for light background */
+        .grid-cell.found-color-8 { background-color: var(--found-color-8); color: var(--text-light); }
+
+
+        .grid-cell.found {
+            /* Inherits specific color from found-color-N class */
+            font-weight: 800; /* Even bolder for found */
+            animation: found-animation 0.5s ease-out;
+        }
+        @keyframes found-animation {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .info-box {
+            background-color: rgba(255, 255, 255, 0.15); /* Slightly transparent white on orange */
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.1); /* Inner shadow */
+            border: 1px solid rgba(255,255,255,0.3); /* Lighter border */
+            color: var(--text-light);
+        }
+
+        .info-box h2 {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.75rem;
+            font-weight: 400;
+            color: #FFF; /* White title on orange background */
+            margin-bottom: 0.75rem;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+        }
+
+        .info-box ul {
+            list-style: none; /* Remove default list style */
+            padding-left: 0;
+        }
+
+        .info-box ul li {
+            position: relative;
+            padding-left: 1.2em; /* Space for custom bullet */
+            margin-bottom: 0.4em;
+            font-size: 0.95rem;
+            line-height: 1.3;
+        }
+        .info-box ul li::before {
+            content: '•'; /* Custom bullet point */
+            color: #FFF; /* White bullet */
+            font-size: 1.2em;
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+
+
+        .word-list-item {
+            padding: 0.6rem 1rem;
+            background-color: rgba(255, 255, 255, 0.2); /* Transparent white */
+            border-radius: 0.5rem;
+            border: 1px solid rgba(255,255,255,0.4);
+            color: var(--text-light); /* White text */
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        .word-list-item.found-word {
+            text-decoration: line-through;
+            color: rgba(255, 255, 255, 0.6); /* Grayed out effect with transparency */
+            background-color: transparent; /* Transparent */
+            border-color: rgba(255,255,255,0.1);
+        }
+
+        .button-primary {
+            background-color: #6D28D9; /* Deep purple */
+            color: white;
+            font-weight: 700;
+            padding: 0.8rem 1.8rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 8px 20px rgba(109, 40, 217, 0.4);
+            transition: all 0.3s ease-out;
+            border: none;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-size: 1rem;
+        }
+        .button-primary:hover {
+            background-color: #7C3AED; /* Slightly lighter purple */
+            transform: translateY(-3px);
+            box-shadow: 0 12px 25px rgba(109, 40, 217, 0.5);
+        }
+        .button-primary:active {
+            transform: translateY(0);
+            box-shadow: 0 5px 10px rgba(109, 40, 217, 0.3);
+        }
+
+        .button-secondary {
+            background-color: #9CA3AF; /* Gray */
+            color: white;
+            font-weight: 700;
+            padding: 0.8rem 1.8rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 5px 15px rgba(156, 163, 175, 0.3);
+            transition: all 0.3s ease-out;
+            border: none;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-size: 1rem;
+        }
+        .button-secondary:hover {
+            background-color: #6B7280; /* Darker gray */
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(156, 163, 175, 0.4);
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7); /* Darker overlay */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.4s ease, visibility 0.4s ease;
+        }
+        .modal.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background-color: #FFFFFF;
+            border-radius: 1.5rem;
+            padding: 3rem;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+            max-width: 550px;
+            width: 90%;
+            transform: scale(0.8);
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); /* Bouncy transition */
+            border: 3px solid #6D28D9; /* Purple border */
+        }
+        .modal.show .modal-content {
+            transform: scale(1);
+        }
+        .modal-title {
+            font-family: 'Fredoka One', cursive;
+            font-size: 2.5rem;
+            color: #6D28D9; /* Purple title */
+            margin-bottom: 1rem;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
+        .modal-message {
+            font-size: 1.3rem;
+            color: var(--text-dark);
+            margin-bottom: 2rem;
+            line-height: 1.4;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .page-container {
+                padding: 2rem;
+                border-radius: 1rem;
+            }
+            .intro-title, .category-title {
+                font-size: 2.5rem;
+            }
+            .intro-description {
+                font-size: 1rem;
+            }
+            .intro-start-button {
+                font-size: 1.4rem;
+                padding: 0.8rem 1.8rem;
+            }
+            .category-grid {
+                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+                gap: 1rem;
+            }
+            .category-button {
+                font-size: 1.2rem;
+                padding: 1rem 0.5rem;
+            }
+
+            .game-wrapper {
+                border-radius: 1rem;
+            }
+            .game-header {
+                padding: 1rem 1.5rem;
+            }
+            h1.game-title {
+                font-size: 2rem;
+            }
+            .game-content {
+                flex-direction: column; /* Stack columns on small screens */
+            }
+            .game-board-area, .game-info-area {
+                padding: 1.5rem;
+            }
+            .game-info-area {
+                border-left: none; /* No vertical border when stacked */
+                border-top: 1px solid rgba(255,255,255,0.2); /* Horizontal separator */
+            }
+            .grid-cell {
+                font-size: 1.3rem;
+            }
+            .info-box h2 {
+                font-size: 1.5rem;
+            }
+            .button-primary, .button-secondary {
+                padding: 0.7rem 1.4rem;
+                font-size: 0.9rem;
+            }
+            .modal-content {
+                padding: 2rem;
+                border-radius: 1rem;
+            }
+            .modal-title {
+                font-size: 2rem;
+            }
+            .modal-message {
+                font-size: 1.1rem;
+            }
+        </style>
+</head>
+<body class="antialiased">
+    <div id="intro-page" class="page-container">
+        <h1 class="intro-title">Word Search Adventure</h1>
+        <p class="intro-description">
+            Embark on a fun journey to find hidden words! Train your brain and improve your vocabulary across various exciting levels. Ready to play?
+        </p>
+        <button id="intro-start-button" class="intro-start-button">
+            Start Game
+        </button>
+    </div>
+
+    <div id="category-selection-page" class="page-container hidden">
+        <h1 class="category-title">Choose a Category</h1>
+        <div id="category-grid" class="category-grid">
+            </div>
+    </div>
+
+    <div id="game-page-container" class="game-wrapper hidden">
+        <div class="game-header">
+            <div id="home-button" class="icon-button">🏠</div> <h1 id="game-category-title" class="game-title"></h1> <div class="icon-button">🚩</div> </div>
+
+        <div class="game-content">
+            <div class="game-board-area">
+                <div id="game-grid" class="game-grid w-full max-w-md aspect-square">
+                </div>
+                <div id="message-box" class="mt-4 text-lg font-semibold text-center text-gray-700 min-h-[30px]">
+                    Click 'Start Game' to begin!
+                </div>
+            </div>
+
+            <div class="game-info-area">
+                <div class="flex justify-between items-center text-white">
+                    <div class="text-lg font-medium">Level: <span id="level-display" class="font-bold">1</span></div>
+                    <div class="text-lg font-medium">Time: <span id="timer-display" class="font-bold">00:00</span></div>
+                    <div class="text-lg font-medium">Score: <span id="score-display" class="font-bold">0</span></div>
+                </div>
+
+                <button id="start-button" class="button-primary">
+                    Start Game
+                </button>
+                <button id="reset-button" class="button-secondary hidden">
+                    Reset Game
+                </button>
+
+                <div class="info-box">
+                    <h2 class="mb-2">Words to Find:</h2>
+                    <ul id="word-list" class="flex flex-wrap gap-2 text-sm">
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="game-modal" class="modal">
+        <div class="modal-content">
+            <h3 id="modal-title" class="modal-title">Game Over!</h3>
+            <p id="modal-message" class="modal-message">You ran out of time.</p>
+            <button id="modal-close-button" class="button-primary">
+                Play Again
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- DOM Element References ---
+        const introPage = document.getElementById('intro-page');
+        const categorySelectionPage = document.getElementById('category-selection-page');
+        const categoryGrid = document.getElementById('category-grid');
+        const gamePageContainer = document.getElementById('game-page-container');
+        const introStartButton = document.getElementById('intro-start-button');
+        const homeButton = document.getElementById('home-button');
+        const gameCategoryTitle = document.getElementById('game-category-title');
+
+        const gameGrid = document.getElementById('game-grid');
+        const wordListElement = document.getElementById('word-list');
+        const timerDisplay = document.getElementById('timer-display');
+        const scoreDisplay = document.getElementById('score-display');
+        const levelDisplay = document.getElementById('level-display');
+        const startButton = document.getElementById('start-button');
+        const resetButton = document.getElementById('reset-button');
+        const messageBox = document.getElementById('message-box');
+        const gameModal = document.getElementById('game-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalMessage = document.getElementById('modal-message');
+        const modalCloseButton = document.getElementById('modal-close-button');
+
+        // --- Game State Variables ---
+        let gridSize = 0;
+        let wordsToFind = [];
+        let foundWords = new Set();
+        let currentGrid = [];
+        let selectedCells = [];
+        let isSelecting = false;
+        let timerInterval;
+        let timeLeft = 0;
+        let score = 0;
+        let currentLevel = 1; // Will now correspond to the selected category ID
+        let gameActive = false;
+        let lastSelectedCell = null;
+        let currentFoundColorIndex = 0;
+
+        // Define the array of found color classes
+        const foundColorClasses = [
+            'found-color-1', 'found-color-2', 'found-color-3', 'found-color-4',
+            'found-color-5', 'found-color-6', 'found-color-7', 'found-color-8'
+        ];
+
+        // --- Sound Elements ---
+        // Removed placeholder URLs. Sounds will not play unless these are defined with actual paths.
+        // For example:
+        // const soundFoundWord = new Audio('sounds/found_word.mp3');
+        // const soundGameOver = new Audio('sounds/game_over.mp3');
+        // const soundGameStart = new Audio('sounds/game_start.mp3');
+        // const soundIncorrect = new Audio('sounds/incorrect.mp3');
+
+
+        // --- Game Configuration Levels (Categories) ---
+        const levels = {
+            1: {
+                categoryName: "Birds",
+                gridSize: 10, // Increased grid size
+                words: ["CHICKEN", "OSTRICH", "SPARROW", "PIGEON", "CANARY", "PARROT", "TOUCAN", "TURKEY", "GOOSE", "HERON", "ROBIN", "HAWK", "EAGLE", "FALCON", "SWAN"],
+                timeLimit: 180, // seconds
+                minWordLength: 3,
+                maxWordLength: 8
+            },
+            2: {
+                categoryName: "Computers",
+                gridSize: 12, // Increased grid size
+                words: ["MONITOR", "KEYBOARD", "MOUSE", "PRINTER", "SPEAKER", "CPU", "MEMORY", "HARDDRIVE", "SOFTWARE", "HARDWARE", "NETWORK", "INTERNET", "WEBSITE", "PROGRAM", "ALGORITHM", "FIREWALL", "SERVER", "ROUTER"],
+                timeLimit: 200,
+                minWordLength: 5,
+                maxWordLength: 10
+            },
+            3: {
+                categoryName: "Cities",
+                gridSize: 12, // Increased grid size
+                words: ["LONDON", "PARIS", "ROME", "TOKYO", "BERLIN", "MADRID", "CAIRO", "SYDNEY", "DUBAI", "MOSCOW", "CHICAGO", "DELHI", "SEATTLE", "BEIJING", "MUMBAI", "ATHENS", "LISBON", "OSLO"],
+                timeLimit: 200,
+                minWordLength: 4,
+                maxWordLength: 9
+            },
+            4: {
+                categoryName: "Food",
+                gridSize: 10, // Increased grid size
+                words: ["PIZZA", "BURGER", "SALAD", "PASTA", "SUSHI", "APPLE", "BANANA", "ORANGE", "BREAD", "CHEESE", "MILK", "EGG", "RICE", "CHICKEN", "FISH", "CARROT", "POTATO", "TOMATO"],
+                timeLimit: 180,
+                minWordLength: 3,
+                maxWordLength: 8
+            },
+            5: {
+                categoryName: "Animals",
+                gridSize: 12, // Increased grid size
+                words: ["ELEPHANT", "LION", "TIGER", "BEAR", "WOLF", "FOX", "ZEBRA", "GIRAFFE", "MONKEY", "PANDA", "KOALA", "KANGAROO", "DOLPHIN", "WHALE", "SHARK", "CROCODILE", "HIPPO", "RHINO"],
+                timeLimit: 200,
+                minWordLength: 4,
+                maxWordLength: 9
+            },
+            6: {
+                categoryName: "Names", // Assuming common names
+                gridSize: 10, // Increased grid size
+                words: ["JOHN", "MARY", "DAVID", "SARAH", "MICHAEL", "EMILY", "ROBERT", "JESSICA", "WILLIAM", "ASHLEY", "JAMES", "ELIZABETH", "CHARLES", "LINDA", "JOSEPH", "DANIEL", "OLIVIA", "SOPHIA"],
+                timeLimit: 180,
+                minWordLength: 4,
+                maxWordLength: 9
+            },
+            7: {
+                categoryName: "Places", // More general places
+                gridSize: 12, // Increased grid size
+                words: ["MOUNTAIN", "FOREST", "RIVER", "OCEAN", "DESERT", "LAKE", "ISLAND", "VALLEY", "BEACH", "VOLCANO", "CANYON", "GLACIER", "TUNDRA", "JUNGLE", "CAVE", "WATERFALL", "CONTINENT", "PARK"],
+                timeLimit: 200,
+                minWordLength: 4,
+                maxWordLength: 9
+            },
+            8: {
+                categoryName: "Things", // Common objects
+                gridSize: 10, // Increased grid size
+                words: ["TABLE", "CHAIR", "BOOK", "PEN", "PHONE", "KEY", "GLASS", "CLOCK", "SHOES", "SPOON", "FORK", "KNIFE", "DOOR", "WINDOW", "CAR", "HAT", "BAG", "BALL"],
+                timeLimit: 180,
+                minWordLength: 3,
+                maxWordLength: 7
+            }
+        };
+
+
+        // --- Helper Functions ---
+
+        /**
+         * Transitions between pages with a fade/slide effect.
+         * @param {HTMLElement} hidePage - The page to hide.
+         * @param {HTMLElement} showPage - The page to show.
+         * @param {string} bodyAlign - 'center' for intro/category, 'flex-start' for game.
+         */
+        function transitionPages(hidePage, showPage, bodyAlign) {
+            hidePage.classList.remove('show');
+            hidePage.classList.add('hidden');
+
+            setTimeout(() => {
+                // Ensure display none after transition for hidden page
+                hidePage.style.display = 'none';
+
+                // Ensure display flex/block for showing page before adding 'show'
+                if (showPage === gamePageContainer) {
+                    showPage.style.display = 'flex';
+                } else {
+                    showPage.style.display = 'flex'; // Or 'block' based on layout needs
+                }
+                showPage.classList.remove('hidden');
+                showPage.classList.add('show');
+                document.body.style.alignItems = bodyAlign;
+            }, 500); // Match CSS transition duration
+        }
+
+
+        /**
+         * Generates a random uppercase letter.
+         * @returns {string} A random letter.
+         */
+        function getRandomLetter() {
+            const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            return alphabet[Math.floor(Math.random() * alphabet.length)];
+        }
+
+        /**
+         * Clears all 'selected' highlights from grid cells.
+         */
+        function clearSelectionHighlights() {
+            document.querySelectorAll('.grid-cell.selected').forEach(c => c.classList.remove('selected'));
+        }
+
+        /**
+         * Displays a message in the message box.
+         * @param {string} msg - The message to display.
+         * @param {string} type - 'info', 'success', or 'error' to determine styling.
+         */
+        function showMessage(msg, type = 'info') {
+            messageBox.textContent = msg;
+            messageBox.className = 'mt-4 text-lg font-semibold text-center min-h-[30px]'; // Reset classes
+            if (type === 'success') {
+                messageBox.classList.add('text-green-700');
+            } else if (type === 'error') {
+                messageBox.classList.add('text-red-700');
+            } else {
+                messageBox.classList.add('text-gray-700');
+            }
+        }
+
+        // --- Grid and Word Placement ---
+
+        /**
+         * Generates the game grid with words placed horizontally or vertically.
+         * Fills remaining cells with random letters.
+         * @param {object} levelConfig - The configuration for the current level.
+         */
+        function generateGrid(levelConfig) {
+            gridSize = levelConfig.gridSize;
+            wordsToFind = [...levelConfig.words]; // Copy to modify
+            foundWords.clear();
+            currentGrid = Array(gridSize).fill(0).map(() => Array(gridSize).fill(''));
+            currentFoundColorIndex = 0; // Reset color index for new game/level
+
+            gameGrid.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+
+            // Sort words by length descending for better placement
+            wordsToFind.sort((a, b) => b.length - a.length);
+            const placedWords = [];
+
+            // Attempt to place words
+            for (const word of wordsToFind) {
+                let placed = false;
+                let attempts = 0;
+                const maxAttempts = 200;
+
+                while (!placed && attempts < maxAttempts) {
+                    const startRow = Math.floor(Math.random() * gridSize);
+                    const startCol = Math.floor(Math.random() * gridSize);
+                    const directions = ['horizontal', 'vertical', 'diagonal-down-right', 'diagonal-up-right']; // Added diagonal directions
+
+                    // Shuffle directions to try them randomly
+                    directions.sort(() => Math.random() - 0.5);
+
+                    for (const direction of directions) {
+                        let canPlace = true;
+                        let tempWordCoords = [];
+
+                        if (direction === 'horizontal') {
+                            if (startCol + word.length > gridSize) {
+                                canPlace = false;
+                            } else {
+                                for (let i = 0; i < word.length; i++) {
+                                    const char = word[i];
+                                    const cellContent = currentGrid[startRow][startCol + i];
+                                    if (cellContent !== '' && cellContent !== char) {
+                                        canPlace = false;
+                                        break;
+                                    }
+                                    tempWordCoords.push({ row: startRow, col: startCol + i });
+                                }
+                            }
+                        } else if (direction === 'vertical') {
+                            if (startRow + word.length > gridSize) {
+                                canPlace = false;
+                            } else {
+                                for (let i = 0; i < word.length; i++) {
+                                    const char = word[i];
+                                    const cellContent = currentGrid[startRow + i][startCol];
+                                    if (cellContent !== '' && cellContent !== char) {
+                                        canPlace = false;
+                                        break;
+                                    }
+                                    tempWordCoords.push({ row: startRow + i, col: startCol });
+                                }
+                            }
+                        } else if (direction === 'diagonal-down-right') {
+                            if (startRow + word.length > gridSize || startCol + word.length > gridSize) {
+                                canPlace = false;
+                            } else {
+                                for (let i = 0; i < word.length; i++) {
+                                    const char = word[i];
+                                    const cellContent = currentGrid[startRow + i][startCol + i];
+                                    if (cellContent !== '' && cellContent !== char) {
+                                        canPlace = false;
+                                        break;
+                                    }
+                                    tempWordCoords.push({ row: startRow + i, col: startCol + i });
+                                }
+                            }
+                        } else if (direction === 'diagonal-up-right') {
+                            if (startRow - word.length < -1 || startCol + word.length > gridSize) { // Check for going out of bounds
+                                canPlace = false;
+                            } else {
+                                for (let i = 0; i < word.length; i++) {
+                                    const char = word[i];
+                                    const cellContent = currentGrid[startRow - i][startCol + i];
+                                    if (cellContent !== '' && cellContent !== char) {
+                                        canPlace = false;
+                                        break;
+                                    }
+                                    tempWordCoords.push({ row: startRow - i, col: startCol + i });
+                                }
+                            }
+                        }
+
+                        if (canPlace) {
+                            for (let i = 0; i < word.length; i++) {
+                                const { row, col } = tempWordCoords[i];
+                                currentGrid[row][col] = word[i];
+                            }
+                            placedWords.push(word);
+                            placed = true;
+                            break; // Word placed, move to next word
+                        }
+                    }
+                    attempts++;
+                }
+                if (!placed) {
+                    console.warn(`Could not place word: ${word}. Consider adjusting grid size or word list.`);
+                    wordsToFind = wordsToFind.filter(w => w !== word); // Remove unplaced word
+                }
+            }
+            wordsToFind = wordsToFind.filter(word => placedWords.includes(word)); // Keep only successfully placed words
+
+            // Fill remaining empty cells with random letters
+            for (let r = 0; r < gridSize; r++) {
+                for (let c = 0; c < gridSize; c++) {
+                    if (currentGrid[r][c] === '') {
+                        currentGrid[r][c] = getRandomLetter();
+                    }
+                }
+            }
+
+            renderGrid();
+            renderWordList();
+        }
+
+        /**
+         * Renders the currentGrid into the HTML game-grid element.
+         */
+        function renderGrid() {
+            gameGrid.innerHTML = ''; // Clear existing grid
+            for (let r = 0; r < gridSize; r++) {
+                for (let c = 0; c < gridSize; c++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('grid-cell');
+                    cell.dataset.row = r;
+                    cell.dataset.col = c;
+                    cell.innerHTML = `<span>${currentGrid[r][c]}</span>`;
+                    gameGrid.appendChild(cell);
+                }
+            }
+        }
+
+        /**
+         * Renders/updates the list of words to find.
+         */
+        function renderWordList() {
+            wordListElement.innerHTML = '';
+            wordsToFind.forEach(word => {
+                const listItem = document.createElement('li');
+                listItem.id = `word-${word}`;
+                listItem.classList.add('word-list-item');
+                if (foundWords.has(word)) {
+                    listItem.classList.add('found-word');
+                }
+                listItem.textContent = word;
+                wordListElement.appendChild(listItem);
+            });
+        }
+
+        // --- Timer Functions ---
+
+        /**
+         * Starts the game timer.
+         */
+        function startTimer() {
+            clearInterval(timerInterval); // Clear any existing timer
+            timeLeft = levels[currentLevel].timeLimit;
+            updateTimerDisplay();
+            timerInterval = setInterval(() => {
+                if (!gameActive) {
+                    clearInterval(timerInterval);
+                    return;
+                }
+                timeLeft--;
+                updateTimerDisplay();
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    gameOver(false); // Time's up
+                }
+            }, 1000);
+        }
+
+        /**
+         * Updates the timer display in MM:SS format.
+         */
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        // --- Game State Updates ---
+
+        /**
+         * Updates the player's score.
+         * @param {number} points - The points to add to the score.
+         */
+        function updateScore(points) {
+            score += points;
+            scoreDisplay.textContent = score;
+        }
+
+        /**
+         * Updates the displayed level number.
+         */
+        function updateLevelDisplay() {
+            levelDisplay.textContent = 1; // Always show 1 for category-based levels
+        }
+
+        /**
+         * Updates the game category title.
+         */
+        function updateGameCategoryTitle(categoryName) {
+            gameCategoryTitle.textContent = categoryName;
+        }
+
+        // --- Modal Functions ---
+
+        /**
+         * Displays the game modal.
+         * @param {string} title - The title for the modal.
+         * @param {string} message - The message content for the modal.
+         * @param {string} buttonText - The text for the modal's action button.
+         */
+        function showModal(title, message, buttonText) {
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+            modalCloseButton.textContent = buttonText;
+            gameModal.classList.add('show');
+        }
+
+        /**
+         * Hides the game modal.
+         */
+        function hideModal() {
+            gameModal.classList.remove('show');
+        }
+
+        // --- Game Flow Control ---
+
+        /**
+         * Handles the end of the game, either by time running out or all words found.
+         * @param {boolean} levelComplete - True if the level was completed, false if time ran out.
+         */
+        function gameOver(levelComplete) {
+            gameActive = false;
+            clearInterval(timerInterval);
+            if (levelComplete) {
+                updateScore(timeLeft * 10); // Bonus points for remaining time
+                showMessage(`Category Complete!`, 'success');
+                showModal('Category Complete!', `You found all words! Score: ${score}. Try another category!`, 'Play Again');
+                // Removed sound playback, as sound elements are now placeholders.
+            } else {
+                showMessage('Time\'s Up! Game Over!', 'error');
+                showModal('Game Over!', `You ran out of time! Final Score: ${score}.`, 'Play Again');
+                // Removed sound playback.
+            }
+            startButton.classList.remove('hidden');
+            resetButton.classList.add('hidden');
+        }
+
+        /**
+         * Starts a new game for the currently selected level/category.
+         */
+        function startGame() {
+            gameActive = true;
+            score = 0; // Always reset score for a new category
+            foundWords.clear();
+            updateScore(0);
+            updateLevelDisplay();
+            updateGameCategoryTitle(levels[currentLevel].categoryName);
+            showMessage('Find the words!');
+            startButton.classList.add('hidden');
+            resetButton.classList.remove('hidden');
+
+            const levelConfig = levels[currentLevel];
+            if (!levelConfig) {
+                console.error("No level configuration found for currentLevel:", currentLevel);
+                returnToCategorySelectionAndResetGame(); // Fallback
+                return;
+            }
+            generateGrid(levelConfig);
+            startTimer();
+            // Removed sound playback.
+        }
+
+        /**
+         * Resets the entire game to Level 1 and returns to category selection.
+         */
+        function returnToCategorySelectionAndResetGame() {
+            gameActive = false;
+            clearInterval(timerInterval); // Stop any active timer
+            currentLevel = 1; // Reset to default level 1 for display, but user chooses actual level
+            score = 0;
+            foundWords.clear();
+            clearSelectionHighlights();
+            hideModal();
+
+            transitionPages(gamePageContainer, categorySelectionPage, 'center');
+
+            // Reset game page UI to initial state (for when it's next shown)
+            updateLevelDisplay();
+            scoreDisplay.textContent = 0;
+            updateTimerDisplay();
+            messageBox.textContent = "Click 'Start Game' to begin!";
+            startButton.classList.remove('hidden');
+            resetButton.classList.add('hidden');
+
+            // Pre-populate word list and grid for initial state (for category selection page to show a default)
+            const defaultLevelWords = levels[1].words;
+            wordListElement.innerHTML = '';
+            defaultLevelWords.forEach(word => {
+                const listItem = document.createElement('li');
+                listItem.classList.add('word-list-item');
+                listItem.textContent = word;
+                wordListElement.appendChild(listItem);
+            });
+            generateGrid(levels[1]); // Generate default grid
+        }
+
+        /**
+         * Populates the category selection grid with buttons.
+         */
+        function populateCategorySelection() {
+            categoryGrid.innerHTML = '';
+            for (const levelId in levels) {
+                const categoryButton = document.createElement('button');
+                categoryButton.classList.add('category-button');
+                categoryButton.textContent = levels[levelId].categoryName;
+                categoryButton.dataset.levelId = levelId;
+                categoryButton.addEventListener('click', () => {
+                    currentLevel = parseInt(levelId);
+                    transitionPages(categorySelectionPage, gamePageContainer, 'flex-start');
+                    startGame();
+                });
+                categoryGrid.appendChild(categoryButton);
+            }
+        }
+
+
+        // --- Event Listeners for Word Selection (Mouse & Touch) ---
+
+        /**
+         * Handles the start of a selection (mousedown or touchstart).
+         * @param {Event} e - The event object.
+         * @param {HTMLElement} cell - The grid cell element where the event occurred.
+         */
+        function handleSelectionStart(e, cell) {
+            if (!gameActive) return;
+            isSelecting = true;
+            selectedCells = [];
+            clearSelectionHighlights();
+            cell.classList.add('selected');
+            const row = parseInt(cell.dataset.row);
+            const col = parseInt(cell.dataset.col);
+            selectedCells.push({ row, col, element: cell });
+            lastSelectedCell = { row, col };
+            showMessage('Selecting...', 'info');
+        }
+
+        /**
+         * Handles movement during a selection (mouseover or touchmove).
+         * @param {Event} e - The event object.
+         * @param {HTMLElement} cell - The grid cell element currently hovered/touched.
+         */
+        function handleSelectionMove(e, cell) {
+            if (!gameActive || !isSelecting || !cell) return;
+
+            const newCellRow = parseInt(cell.dataset.row);
+            const newCellCol = parseInt(cell.dataset.col);
+
+            // Prevent adding the same cell multiple times
+            if (selectedCells.some(sc => sc.row === newCellRow && sc.col === newCellCol)) {
+                return;
+            }
+
+            const firstCell = selectedCells[0];
+
+            // Check if the new cell is adjacent to the last selected cell
+            const isAdjacent = (Math.abs(newCellRow - lastSelectedCell.row) <= 1 && newCellCol === lastSelectedCell.col) ||
+                               (Math.abs(newCellCol - lastSelectedCell.col) <= 1 && newCellRow === lastSelectedCell.row) ||
+                               (Math.abs(newCellRow - lastSelectedCell.row) === Math.abs(newCellCol - lastSelectedCell.col) && Math.abs(newCellRow - lastSelectedCell.row) === 1); // Allow diagonal
+
+            if (!isAdjacent) {
+                // If not adjacent, it's an invalid move for contiguous selection
+                clearSelectionHighlights();
+                selectedCells = [];
+                isSelecting = false;
+                showMessage('Invalid selection path: Cells must be adjacent (horizontal, vertical, or diagonal).', 'error');
+                // Removed sound playback.
+                return;
+            }
+
+            // Determine direction after the first two cells are selected
+            if (selectedCells.length >= 1) {
+                const isHorizontal = (newCellRow === firstCell.row && newCellCol !== firstCell.col);
+                const isVertical = (newCellCol === firstCell.col && newCellRow !== firstCell.row);
+                const isDiagonal = (Math.abs(newCellRow - firstCell.row) === Math.abs(newCellCol - firstCell.col) && newCellRow !== firstCell.row);
+
+                if (selectedCells.length > 1) {
+                    const secondCell = selectedCells[1];
+                    const initialDirectionHorizontal = (secondCell.row === firstCell.row);
+                    const initialDirectionVertical = (secondCell.col === firstCell.col);
+                    const initialDirectionDiagonal = (Math.abs(secondCell.row - firstCell.row) === Math.abs(secondCell.col - firstCell.col) && secondCell.row !== firstCell.row);
+
+                    // Ensure selection continues in the initial determined direction
+                    if ((initialDirectionHorizontal && !isHorizontal) ||
+                        (initialDirectionVertical && !isVertical) ||
+                        (initialDirectionDiagonal && !isDiagonal)) {
+                        clearSelectionHighlights();
+                        selectedCells = [];
+                        isSelecting = false;
+                        showMessage('Invalid selection path: Must continue in same direction (horiz., vert., or diag.).', 'error');
+                        // Removed sound playback.
+                        return;
+                    }
+                }
+            }
+
+            cell.classList.add('selected');
+            selectedCells.push({ row: newCellRow, col: newCellCol, element: cell });
+            lastSelectedCell = { row: newCellRow, col: newCellCol };
+        }
+
+
+        /**
+         * Handles the end of a selection (mouseup or touchend).
+         */
+        function handleSelectionEnd() {
+            if (!gameActive || !isSelecting) return;
+            isSelecting = false;
+            lastSelectedCell = null;
+            if (selectedCells.length >= levels[currentLevel].minWordLength) {
+                checkSelectedWord();
+            } else {
+                showMessage(`Selection too short. Min length is ${levels[currentLevel].minWordLength}.`, 'error');
+                // Removed sound playback.
+            }
+            clearSelectionHighlights();
+            selectedCells = [];
+        }
+
+
+        // Mouse events
+        gameGrid.addEventListener('mousedown', (e) => {
+            const cell = e.target.closest('.grid-cell');
+            if (cell) handleSelectionStart(e, cell);
+        });
+
+        gameGrid.addEventListener('mouseover', (e) => {
+            const cell = e.target.closest('.grid-cell');
+            if (cell) handleSelectionMove(e, cell);
+        });
+
+        gameGrid.addEventListener('mouseup', handleSelectionEnd);
+        document.body.addEventListener('mouseleave', () => { // If mouse leaves body while selecting
+            if (isSelecting) handleSelectionEnd();
+        });
+
+        // Touch events
+        gameGrid.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // Prevent scrolling
+            const touch = e.touches[0];
+            const cell = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('.grid-cell');
+            if (cell) handleSelectionStart(e, cell);
+        }, { passive: false });
+
+        gameGrid.addEventListener('touchmove', (e) => {
+            e.preventDefault(); // Prevent scrolling
+            const touch = e.touches[0];
+            const cell = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('.grid-cell');
+            if (cell) handleSelectionMove(e, cell);
+        }, { passive: false });
+
+        gameGrid.addEventListener('touchend', handleSelectionEnd);
+        gameGrid.addEventListener('touchcancel', handleSelectionEnd);
+
+        /**
+         * Checks the selected word against the list of words to find.
+         */
+        function checkSelectedWord() {
+            if (selectedCells.length < levels[currentLevel].minWordLength) {
+                showMessage(`Word must be at least ${levels[currentLevel].minWordLength} letters long.`, 'error');
+                // Removed sound playback.
+                return;
+            }
+
+            // Sort cells based on their position to correctly form the word string
+            selectedCells.sort((a, b) => {
+                // Determine if selection is primarily horizontal, vertical, or diagonal
+                const isHorizontal = selectedCells.every(c => c.row === selectedCells[0].row);
+                const isVertical = selectedCells.every(c => c.col === selectedCells[0].col);
+
+                if (isHorizontal) {
+                    return a.col - b.col;
+                } else if (isVertical) {
+                    return a.row - b.row;
+                } else { // Diagonal
+                    // For diagonal, sort by row then by column
+                    if (a.row !== b.row) return a.row - b.row;
+                    return a.col - b.col;
+                }
+            });
+
+
+            let selectedWord = '';
+            for (const cell of selectedCells) {
+                selectedWord += currentGrid[cell.row][cell.col];
+            }
+
+            const reversedSelectedWord = selectedWord.split('').reverse().join('');
+
+            let foundMatch = false;
+            let matchedWord = '';
+
+            for (const word of wordsToFind) {
+                if (word === selectedWord || word === reversedSelectedWord) {
+                    if (!foundWords.has(word)) {
+                        foundMatch = true;
+                        matchedWord = word;
+                        break;
+                    }
+                }
+            }
+
+            if (foundMatch) {
+                foundWords.add(matchedWord);
+                updateScore(matchedWord.length * 10 + (timeLeft > 0 ? timeLeft : 0));
+                showMessage(`Found: ${matchedWord}!`, 'success');
+
+                const colorClass = foundColorClasses[currentFoundColorIndex % foundColorClasses.length];
+                selectedCells.forEach(cell => {
+                    cell.element.classList.add('found', colorClass);
+                });
+                currentFoundColorIndex++;
+
+                const listItem = document.getElementById(`word-${matchedWord}`);
+                if (listItem) {
+                    listItem.classList.add('found-word');
+                }
+                // Removed sound playback.
+
+                if (foundWords.size === wordsToFind.length) {
+                    setTimeout(() => gameOver(true), 1000);
+                }
+            } else {
+                showMessage('Not a word, already found, or invalid selection.', 'error');
+                // Removed sound playback.
+            }
+        }
+
+        // --- Initial Setup and Event Bindings ---
+        startButton.addEventListener('click', startGame);
+        resetButton.addEventListener('click', returnToCategorySelectionAndResetGame);
+        modalCloseButton.addEventListener('click', returnToCategorySelectionAndResetGame); // Modal always goes back to category select
+
+        // Event listener for the intro page's "Start Game" button
+        introStartButton.addEventListener('click', () => {
+            transitionPages(introPage, categorySelectionPage, 'center');
+            populateCategorySelection(); // Ensure categories are rendered when entering this page
+        });
+
+        // Event listener for the home icon button
+        homeButton.addEventListener('click', returnToCategorySelectionAndResetGame);
+
+
+        // Initial setup on window load: only show the intro page
+        window.onload = () => {
+            // All pages are initially hidden except intro-page (which starts without 'hidden' class)
+            // Initial render state for game elements (will be hidden)
+            updateLevelDisplay();
+            scoreDisplay.textContent = 0;
+            updateTimerDisplay();
+            // Pre-populate with dummy data so it doesn't look empty if briefly flashed
+            generateGrid(levels[1]); // Use level 1 words as default
+            gameCategoryTitle.textContent = "Word Search"; // Default title
+            messageBox.textContent = "Click 'Start Game' to begin!";
+        };
+    </script>
+</body>
+</html>
