@@ -1,13 +1,37 @@
-**Arcade Hub**
+# Arcade Hub 🎮
 
-The Arcade Hub is your new go-to collection for a variety of classic, engaging, and challenging browser-based games!
+**Arcade Hub** is your one-stop destination for a wide variety of fun, educational, and nostalgic browser-based games — all in one clean, easy-to-use interface.
 
-It's a central place where you can:
+Whether you're looking to sharpen your memory, test your reflexes, or just unwind with a classic game, **Arcade Hub** has something for everyone.
 
-=> Master strategy: Play games that require clever thinking.
+All games are playable right in your browser — no installations, no accounts, just pure fun!
 
-=> Test your memory: Challenge your brain with recall-based games.
 
-=> Enjoy timeless fun: Dive into games that are simple to learn but provide endless entertainment.
 
-It's designed to be a fun, easy-to-access hub for different types of games, right in your web browser!
+##  Games Included
+
+| Category         | Games                                                                    |
+|------------------|--------------------------------------------------------------------------|
+|  Strategy       | Sudoku, Tic Tac Toe (with bot), Dots and Boxes (with unbeatable AI), 2048 |
+|  Memory & Logic | Sound Memory, Math Memory                                                 |
+|  Arcade         | Snake, Ping Pong                                                          |
+|  Word Games     | Hangman, Word Search (with categories)                                    |
+
+
+
+##  Game Guide
+
+Every game includes instructions on how to play, tips for winning, and intuitive controls for smooth gameplay. The hub is designed with learners, casual gamers, and challenge seekers in mind.
+
+
+
+##  Technologies Used
+
+- HTML  
+- Tailwind CSS  
+- JavaScript  
+
+##  Live Demo
+
+[ View Arcade Hub Live](#) *(https://isha-saleem.github.io/Arcade-Hub/)*
+
